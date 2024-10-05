@@ -1,0 +1,28 @@
+body {
+  height: 100%;
+  margin: 0;
+  font-family: Arial, sans-serif;
+}
+
+.container {
+  display: grid;
+  grid-auto-columns: 1fr;
+  grid-template-columns: 1fr 1fr;
+  gap: 0px 0px;
+  grid-template-areas:
+    "Choropleth Rooftop_Matrix"
+    "Parallel_coordinates "
+}
+.Choropleth {
+  grid-area: Choropleth;
+}
+.Rooftop_Matrix {
+  grid-area: Rooftop_Matrix;
+}
+.Parallel_coordinates {
+  grid-area: Parallel_coordinates;
+}
+
+/*.LineChart {
+  grid-area: LineChart;
+}*/
