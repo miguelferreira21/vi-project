@@ -25,6 +25,7 @@
 
 .LineChart {
   grid-area: LineChart;
+
 }
 
 .Filters {
@@ -36,24 +37,37 @@
 }
 
 .placeholder1 {
-  background-color: green;
+  background-image: url('rooftop_1.png');
+  background-size: 75%;
+  background-repeat: no-repeat;
+  background-position: center;
   height: 100%;
   width: 100%;
 }
 
 .placeholder2 {
-  background-color: red;
+  background-image: url('radar.png');
+  background-size: 70%;
+  background-repeat: no-repeat;
+  background-position: center;
   height: 100%;
   width: 100%;
 }
 
 .placeholder3 {
-  background-color: purple;
+  background-image: url('filters.png');
+  background-size: 80%;
+  background-repeat: no-repeat;
+  background-position: center;
   height: 100%;
   width: 100%;
 }
 
 .placeholder4 {
+  background-image: url('linechart_ed.jpg');
+  background-size: 40% auto; 
+  background-repeat: no-repeat;
+  background-position: center;
   background-color: orange;
   height: 100%;
   width: 100%;
@@ -63,4 +77,8 @@
   background-color: gray;
   height: 100%;
   width: 100%;
+}
+
+.Choropleth, .Rooftop_Matrix, .Parallel_Coordinates, .LineChart, .Filters, .TBD {
+  border: 1px solid black;
 }
