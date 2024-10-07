@@ -40,9 +40,8 @@ function createChoroplethMap(data, containerId) {
     .attr("transform", `translate(${margin.left},${margin.top})`);
 
   // Create a color scale
-  const colorScale = d3.scaleQuantile()
-    .domain(d3.extent(data, d => +d.happiness_score))
-    .range(d3.schemeBlues[9]);
+  const colorScale = d3.scaleSequential(d3.interpolateBlues)
+    .domain(d3.extent(data, d => +d.happiness_score));
 
   // Load world map data
   d3.json("./data/countries-50m.json").then(function(worldData) {
@@ -97,12 +96,12 @@ function createChoroplethMap(data, containerId) {
         return countryData ? colorScale(+countryData.happiness_score) : "#ccc";
       })
       .attr("stroke", "#fff")
-      .attr("stroke-width", 0.25);
+      .attr("stroke-width", 0.05);
 
     // Add mouseover and mouseout events
     mapGroup.selectAll("path")
       .on("mouseover", function(event, d) {
-        d3.select(this).attr("stroke", "#000").attr("stroke-width", 0.75);
+        d3.select(this).attr("stroke", "#000").attr("stroke-width", 0.40);
         const countryData = data.find(item => item.country === d.properties.name);
         if (countryData) {
           showTooltip(event, d, countryData);
@@ -113,37 +112,42 @@ function createChoroplethMap(data, containerId) {
         hideTooltip();
       });
 
-    // Add legend
     const legend = svg.append("g")
       .attr("transform", `translate(${width - 120}, ${height - 180})`);
 
+    const legendWidth = 20;
+    const legendHeight = 180;
+
     const legendScale = d3.scaleLinear()
       .domain(d3.extent(data, d => +d.happiness_score))
-      .range([0, 180]);
+      .range([legendHeight, 0]);
 
-    console.log(d3.extent(data, d => +d.happiness_score))
+    const legendAxis = d3.axisRight(legendScale)
+      .ticks(5)
+      .tickSize(6);
 
-    legend.selectAll("rect")
-      .data(colorScale.range())
-      .enter()
-      .append("rect")
-      .attr("y", (d, i) => i * 20)
-      .attr("width", 20)
-      .attr("height", 20)
-      .style("fill", d => d);
+    legend.append("g")
+      .attr("transform", `translate(${legendWidth}, 0)`)
+      .call(legendAxis);
 
-    const interval = ((colorScale.domain()[1] - colorScale.domain()[0]) / 9).toFixed(3);
+    const legendGradient = legend.append("defs")
+      .append("linearGradient")
+      .attr("id", "legend-gradient")
+      .attr("x1", "0%")
+      .attr("y1", "100%")
+      .attr("x2", "0%")
+      .attr("y2", "0%");
 
-    legend.selectAll("text")
-      .data(colorScale.range())
-      .enter()
-      .append("text")
-      .attr("x", 30)
-      .attr("y", (d, i) => i * 20 + 15)
-      .attr("font-family", "Arial")
-      .attr("font-size", "12px")
-      .attr("fill", "black")
-      .text((d, i) => (colorScale.domain()[0] + i * interval).toFixed(3));
+    legendGradient.selectAll("stop")
+      .data(colorScale.ticks().map((t, i, n) => ({ offset: `${100*i/n.length}%`, color: colorScale(t) })))
+      .enter().append("stop")
+      .attr("offset", d => d.offset)
+      .attr("stop-color", d => d.color);
+
+    legend.append("rect")
+      .attr("width", legendWidth)
+      .attr("height", legendHeight)
+      .style("fill", "url(#legend-gradient)");
 
     legend.append("text")
       .attr("x", 10)
