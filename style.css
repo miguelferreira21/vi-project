@@ -7,18 +7,21 @@ body {
 .container {
   display: grid;
   grid-auto-columns: 1fr;
-  grid-template-columns: 1fr 1fr;
-  gap: 0px 0px;
+  grid-template-columns: 1fr 1fr; /* Creates two equal columns */
+  gap: 0px 0px; /* No gaps between grid items */
   grid-template-areas:
     "Choropleth Rooftop_Matrix"
-    "Parallel_coordinates "
+    "Parallel_coordinates Parallel_coordinates";
 }
+
 .Choropleth {
   grid-area: Choropleth;
 }
+
 .Rooftop_Matrix {
   grid-area: Rooftop_Matrix;
 }
+
 .Parallel_coordinates {
   grid-area: Parallel_coordinates;
 }
