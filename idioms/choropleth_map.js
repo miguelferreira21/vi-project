@@ -100,9 +100,7 @@ function createChoroplethMap(data, containerId) {
       .domain(d3.extent(data, d => +d.happiness_score))
       .range([0, 180]);
 
-    const legendAxis = d3.axisRight(legendScale)
-      .ticks(5)
-      .tickSize(20);
+    console.log(d3.extent(data, d => +d.happiness_score))
 
     legend.selectAll("rect")
       .data(colorScale.range())
@@ -113,7 +111,18 @@ function createChoroplethMap(data, containerId) {
       .attr("height", 20)
       .style("fill", d => d);
 
-    legend.call(legendAxis);
+    const interval = ((colorScale.domain()[1] - colorScale.domain()[0]) / 9).toFixed(3);
+
+    legend.selectAll("text")
+      .data(colorScale.range())
+      .enter()
+      .append("text")
+      .attr("x", 30)
+      .attr("y", (d, i) => i * 20 + 15)
+      .attr("font-family", "Arial")
+      .attr("font-size", "12px")
+      .attr("fill", "black")
+      .text((d, i) => (colorScale.domain()[0] + i * interval).toFixed(3));
 
     legend.append("text")
       .attr("x", 10)
