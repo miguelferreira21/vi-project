@@ -1,17 +1,14 @@
-body {
-  height: 100%;
-  margin: 0;
-  font-family: Arial, sans-serif;
-}
-
 .container {
   display: grid;
-  grid-auto-columns: 1fr;
-  grid-template-columns: 1fr 1fr; /* Creates two equal columns */
-  gap: 0px 0px; /* No gaps between grid items */
+  grid-template-columns: 1fr 1fr; /* Two equal-width columns */
+  grid-template-rows: 1fr 3fr 3fr;  /* Two rows, automatically sized */
+  gap: 5px; /* Adds space between grid items */
   grid-template-areas:
+    "LineChart TBD"
     "Choropleth Rooftop_Matrix"
-    "Parallel_coordinates Parallel_coordinates";
+    "Parallel_Coordinates Filters"; /* Defines layout positions */
+  max-height: 100vh;
+  max-width: 100vw;
 }
 
 .Choropleth {
@@ -22,10 +19,48 @@ body {
   grid-area: Rooftop_Matrix;
 }
 
-.Parallel_coordinates {
-  grid-area: Parallel_coordinates;
+.Parallel_Coordinates {
+  grid-area: Parallel_Coordinates;
 }
 
-/*.LineChart {
+.LineChart {
   grid-area: LineChart;
-}*/
+}
+
+.Filters {
+  grid-area: Filters;
+}
+
+.TBD {
+  grid-area: TBD;
+}
+
+.placeholder1 {
+  background-color: green;
+  height: 100%;
+  width: 100%;
+}
+
+.placeholder2 {
+  background-color: red;
+  height: 100%;
+  width: 100%;
+}
+
+.placeholder3 {
+  background-color: purple;
+  height: 100%;
+  width: 100%;
+}
+
+.placeholder4 {
+  background-color: orange;
+  height: 100%;
+  width: 100%;
+}
+
+.placeholder5 {
+  background-color: gray;
+  height: 100%;
+  width: 100%;
+}
