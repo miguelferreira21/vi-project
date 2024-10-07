@@ -1,9 +1,10 @@
 function init() {
   d3.csv("./data/dataset.csv").then(function (data) {
+    createLineChart(data, ".LineChart");
     createChoroplethMap(data, ".Choropleth");
     //createRooftop_Matrix(data, ".Rooftop_Matrix");
     //createParallel_coordinates(data, ".Parallel_coordinates");
-    //createLineChart(data, ".LineChart");
+    
   });
 }
 

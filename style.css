@@ -82,3 +82,97 @@
 .Choropleth, .Rooftop_Matrix, .Parallel_Coordinates, .LineChart, .Filters, .TBD {
   border: 1px solid black;
 }
+
+#slider-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative; /* Position relative to allow absolute positioning of sliders */
+  width: 500px; /* Keep this fixed to ensure alignment */
+}
+
+/* General styles for input range */
+input[type="range"] {
+  -webkit-appearance: none; /* Remove default styling */
+  width: 100%;
+  background: transparent; /* Background for the slider track */
+  margin: 0; /* Reset margin */
+  position: relative; /* Position relative for z-index context */
+  z-index: 1; /* Ensure slider is above the container */
+}
+
+/* For Chrome and Safari */
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 15px; /* Thumb width */
+  height: 15px; /* Thumb height */
+  background: steelblue; /* Thumb color */
+  cursor: pointer; /* Pointer cursor on hover */
+  border-radius: 50%; /* Circular thumb */
+  margin-top: -5px; /* Center the thumb over the track */
+  position: relative; /* Position relative for z-index context */
+  z-index: 2; /* Ensure thumb is above the track */
+}
+
+/* Track styling for Chrome and Safari */
+input[type="range"]::-webkit-slider-runnable-track {
+  height: 5px; /* Track height */
+  background: lightgray; /* Track color */
+  border-radius: 5px; /* Optional: Make track corners rounded */
+}
+
+/* For Firefox */
+input[type="range"]::-moz-range-thumb {
+  width: 15px; /* Thumb width for Firefox */
+  height: 15px; /* Thumb height for Firefox */
+  background: steelblue; /* Thumb color for Firefox */
+  cursor: pointer; /* Pointer cursor on hover */
+  border-radius: 50%; /* Circular thumb */
+  position: relative; /* Position relative for z-index context */
+  z-index: 2; /* Ensure thumb is above the track */
+}
+
+input[type="range"]::-moz-range-track {
+  height: 5px; /* Track height for Firefox */
+  background: lightgray; /* Track color for Firefox */
+  border-radius: 5px; /* Optional: Make track corners rounded */
+}
+
+/* For Internet Explorer */
+input[type="range"]::-ms-thumb {
+  width: 15px; /* Thumb width for IE */
+  height: 15px; /* Thumb height for IE */
+  background: steelblue; /* Thumb color for IE */
+  cursor: pointer; /* Pointer cursor on hover */
+  border-radius: 50%; /* Circular thumb */
+  position: relative; /* Position relative for z-index context */
+  z-index: 2; /* Ensure thumb is above the track */
+}
+
+input[type="range"]::-ms-track {
+  height: 5px; /* Track height for IE */
+  background: transparent; /* Background for track in IE */
+  border-color: transparent; /* Border color for track in IE */
+  color: lightgray; /* Track color for IE */
+  border-radius: 5px; /* Optional: Make track corners rounded */
+}
+
+/* Hide the track fill in IE */
+input[type="range"]::-ms-fill-lower,
+input[type="range"]::-ms-fill-upper {
+  background: lightgray; /* Track color for IE */
+}
+
+/* Ensure the track appears above the thumb in Firefox */
+input[type="range"]::-moz-range-track {
+  background: lightgray; /* Track color */
+  border-radius: 5px; /* Optional: Make track corners rounded */
+  z-index: 1; /* Ensure track is behind the thumb */
+}
+
+/* Optional: Add styles for the track to ensure it looks good */
+input[type="range"]::-webkit-slider-runnable-track {
+  border-radius: 5px; /* Optional: Rounded track corners */
+}
+

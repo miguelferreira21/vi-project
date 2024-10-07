@@ -1,4 +1,7 @@
 function createChoroplethMap(data, containerId) {
+  // Clear previous choropleth map
+  d3.select(containerId).selectAll("*").remove();
+
   // Set up dimensions
   const margin = { top: 20, right: 20, bottom: 50, left: 80 };
   const width = window.innerWidth/2;
@@ -29,6 +32,20 @@ function createChoroplethMap(data, containerId) {
     }      
   });
 
+  const averagesArray = Array.from(d3.rollup(
+    data, 
+    v => ({
+      happiness_score: d3.mean(v, d => +d.happiness_score),
+      gdp_per_capita: d3.mean(v, d => +d.gdp_per_capita),
+      social_support: d3.mean(v, d => +d.social_support),
+      healthy_life_expectancy: d3.mean(v, d => +d.healthy_life_expectancy),
+    }),
+    d => d.country
+  )).map(([country, averages]) => ({
+    country,
+    ...averages
+  }));
+
   // Create SVG
   const svg = d3.select(containerId)
     .append("svg")
@@ -41,7 +58,7 @@ function createChoroplethMap(data, containerId) {
 
   // Create a color scale
   const colorScale = d3.scaleSequential(d3.interpolateBlues)
-    .domain(d3.extent(data, d => +d.happiness_score));
+    .domain(d3.extent(averagesArray, d => +d.happiness_score));
 
   // Load world map data
   d3.json("./data/countries-50m.json").then(function(worldData) {
@@ -92,7 +109,7 @@ function createChoroplethMap(data, containerId) {
       .join("path")
       .attr("d", path)
       .attr("fill", d => {
-        const countryData = data.find(item => item.country === d.properties.name);
+        const countryData = averagesArray.find(item => item.country === d.properties.name);
         return countryData ? colorScale(+countryData.happiness_score) : "#ccc";
       })
       .attr("stroke", "#fff")
@@ -102,7 +119,7 @@ function createChoroplethMap(data, containerId) {
     mapGroup.selectAll("path")
       .on("mouseover", function(event, d) {
         d3.select(this).attr("stroke", "#000").attr("stroke-width", 0.40);
-        const countryData = data.find(item => item.country === d.properties.name);
+        const countryData = averagesArray.find(item => item.country === d.properties.name);
         if (countryData) {
           showTooltip(event, d, countryData);
         }
@@ -119,7 +136,7 @@ function createChoroplethMap(data, containerId) {
     const legendHeight = 180;
 
     const legendScale = d3.scaleLinear()
-      .domain(d3.extent(data, d => +d.happiness_score))
+      .domain(d3.extent(averagesArray, d => +d.happiness_score))
       .range([legendHeight, 0]);
 
     const legendAxis = d3.axisRight(legendScale)
@@ -169,10 +186,10 @@ function createChoroplethMap(data, containerId) {
 
     tooltip.html(`
       <strong>${d.properties.name}</strong><br>
-      Happiness Score: ${countryData.happiness_score}<br>
-      GDP per capita: ${countryData.gdp_per_capita}<br>
-      Social support: ${countryData.social_support}<br>
-      Healthy life expectancy: ${countryData.healthy_life_expectancy}
+      Happiness Score: ${countryData.happiness_score.toFixed(3)}<br>
+      GDP per capita: ${countryData.gdp_per_capita.toFixed(3)}<br>
+      Social support: ${countryData.social_support.toFixed(3)}<br>
+      Healthy life expectancy: ${countryData.healthy_life_expectancy.toFixed(3)}
     `)
       .style("left", (event.pageX + 10) + "px")
       .style("top", (event.pageY - 28) + "px");
