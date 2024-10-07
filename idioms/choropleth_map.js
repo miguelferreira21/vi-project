@@ -33,8 +33,10 @@ function createChoroplethMap(data, containerId) {
   const svg = d3.select(containerId)
     .append("svg")
     .attr("width", width)
-    .attr("height", height)
-    .append("g")
+    .attr("height", height);
+
+  // Create a group for the map and transformations
+  const mapGroup = svg.append("g")
     .attr("transform", `translate(${margin.left},${margin.top})`);
 
   // Create a color scale
@@ -48,49 +50,68 @@ function createChoroplethMap(data, containerId) {
   
     // Create a map projection
     const projection = d3.geoMercator()
-      .fitSize([width, height], countries)
-      .center([-100, 75])
-      .scale(600);
+      .fitSize([width, height], countries);
 
     // Create a path generator
     const path = d3.geoPath().projection(projection);
 
+    // Calculate the bounding box of the map
+    const bounds = path.bounds(countries);
+    const dx = bounds[1][0] - bounds[0][0];
+    const dy = bounds[1][1] - bounds[0][1];
+    const x = (bounds[0][0] + bounds[1][0]) / 2;
+    const y = (bounds[0][1] + bounds[1][1]) / 2;
+    const scale = 0.9 / Math.max(dx / width, dy / height);
+    const translate = [width / 2 - scale * x, height / 2 - scale * y];
+
+    // Set initial zoom and offset
+    const initialZoomFactor = 1.60;
+    const initialXOffset = 350;
+    const initialYOffset = 40;
+
+    // Calculate the initial transform
+    const initialTransform = d3.zoomIdentity
+      .translate(translate[0] - initialXOffset, translate[1] - initialYOffset)
+      .scale(scale * initialZoomFactor);
+
+    // Add zoom functionality
+    const zoom = d3.zoom()
+      .scaleExtent([scale * initialZoomFactor, 8])
+      .translateExtent([[0, 0], [width, height]])
+      .on("zoom", zoomed);
+
+    svg.call(zoom)
+      .call(zoom.transform, initialTransform);
+
+    function zoomed(event) {
+      mapGroup.attr("transform", event.transform);
+    }
+
     // Draw the map
-    svg.selectAll("path")
+    mapGroup.selectAll("path")
       .data(countries.features)
-      .enter()
-      .append("path")
+      .join("path")
       .attr("d", path)
       .attr("fill", d => {
         const countryData = data.find(item => item.country === d.properties.name);
         return countryData ? colorScale(+countryData.happiness_score) : "#ccc";
       })
       .attr("stroke", "#fff")
-      .attr("stroke-width", 0.5)
+      .attr("stroke-width", 0.25);
+
+    // Add mouseover and mouseout events
+    mapGroup.selectAll("path")
       .on("mouseover", function(event, d) {
+        d3.select(this).attr("stroke", "#000").attr("stroke-width", 0.75);
         const countryData = data.find(item => item.country === d.properties.name);
         if (countryData) {
-          d3.select(this).attr("stroke", "#000").attr("stroke-width", 2);
           showTooltip(event, d, countryData);
         }
       })
       .on("mouseout", function() {
-        d3.select(this).attr("stroke", "#fff").attr("stroke-width", 0.5);
+        d3.select(this).attr("stroke", "#fff").attr("stroke-width", 0.25);
         hideTooltip();
       });
-    
-    // Add zoom functionality
-    const zoom = d3.zoom()
-      .scaleExtent([0.2, 50])
-      .on("zoom", zoomed);
-
-    svg.call(zoom)
-      .call(zoom.transform, d3.zoomIdentity.scale(0.2));
-
-    function zoomed(event) {
-      svg.selectAll("path")
-        .attr("transform", event.transform);
-    }
 
     // Add legend
     const legend = svg.append("g")
