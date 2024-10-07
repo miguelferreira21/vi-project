@@ -67,7 +67,7 @@ function createChoroplethMap(data, containerId) {
     // Set initial zoom and offset
     const initialZoomFactor = 1.60;
     const initialXOffset = 350;
-    const initialYOffset = 40;
+    const initialYOffset = 30;
 
     // Calculate the initial transform
     const initialTransform = d3.zoomIdentity
