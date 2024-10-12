@@ -130,17 +130,19 @@ function createChoroplethMap(data, containerId) {
       });
 
     const legend = svg.append("g")
-      .attr("transform", `translate(${width - 120}, ${height - 180})`);
+      .attr("transform", `translate(${width - 120}, ${height - 200})`);
 
     const legendWidth = 20;
     const legendHeight = 180;
 
+    const extent = d3.extent(averagesArray, d => +d.happiness_score);
+
     const legendScale = d3.scaleLinear()
-      .domain(d3.extent(averagesArray, d => +d.happiness_score))
+      .domain(extent)
       .range([legendHeight, 0]);
 
     const legendAxis = d3.axisRight(legendScale)
-      .ticks(5)
+      .tickValues([extent[0], ...legendScale.ticks(5), extent[1]])
       .tickSize(6);
 
     legend.append("g")
@@ -156,7 +158,10 @@ function createChoroplethMap(data, containerId) {
       .attr("y2", "0%");
 
     legendGradient.selectAll("stop")
-      .data(colorScale.ticks().map((t, i, n) => ({ offset: `${100*i/n.length}%`, color: colorScale(t) })))
+      .data(colorScale.ticks().map((t, i, n) => ({ 
+        offset: `${100*i/n.length}%`, 
+        color: colorScale(t) 
+      })))
       .enter().append("stop")
       .attr("offset", d => d.offset)
       .attr("stop-color", d => d.color);
@@ -186,10 +191,10 @@ function createChoroplethMap(data, containerId) {
 
     tooltip.html(`
       <strong>${d.properties.name}</strong><br>
-      Happiness Score: ${countryData.happiness_score.toFixed(3)}<br>
-      GDP per capita: ${countryData.gdp_per_capita.toFixed(3)}<br>
-      Social support: ${countryData.social_support.toFixed(3)}<br>
-      Healthy life expectancy: ${countryData.healthy_life_expectancy.toFixed(3)}
+      Happiness Score: ${countryData.happiness_score.toFixed(2)}<br>
+      GDP per capita: ${countryData.gdp_per_capita.toFixed(2)} GK$<br>
+      Social support: ${countryData.social_support.toFixed(2)}<br>
+      Healthy life expectancy: ${countryData.healthy_life_expectancy.toFixed(2)}
     `)
       .style("left", (event.pageX + 10) + "px")
       .style("top", (event.pageY - 28) + "px");
