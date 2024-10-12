@@ -1,73 +1,67 @@
+let globalData;
+
 function init() {
   d3.csv("./data/dataset.csv").then(function (data) {
+    globalData = data;
+    
     createLineChart(data, ".LineChart");
     createChoroplethMap(data, ".Choropleth");
     //createRooftop_Matrix(data, ".Rooftop_Matrix");
     //createParallel_coordinates(data, ".Parallel_coordinates");
     
+    // Set up data binding
+    setupDataBinding();
   });
 }
 
+function setupDataBinding() {
+  // This function would set up any data binding mechanisms
+  // For now, we'll just add a button to simulate data updates
+  d3.select("body")
+    .append("button")
+    .text("Update Data")
+    .on("click", updateData);
+}
 
-// // Declare global variables to hold data for countries and capita
-// var globalDataCountries;
-// var globalDataCapita;
+function updateData() {
+  // In a real application, this function would fetch new data or apply filters
+  // For this example, we'll just simulate a data change by modifying some values
+  globalData.forEach(d => {
+    d.happiness_score = Math.max(0, Math.min(10, +d.happiness_score + (Math.random() - 0.5)));
+  });
 
+  // Use the LinkedCharts system to update all charts
+  LinkedCharts.publish('dataUpdate', globalData);
+}
 
-// // Define margin and dimensions for the charts
-// const margin = {
-//   top: 20,
-//   right: 20,
-//   bottom: 50,
-//   left: 80,
-// };
-// const width = 500 - margin.left - margin.right;
-// const height = 400 - margin.top - margin.bottom;
+// Uncomment and update these functions when implementing them
+/*
+function createRooftop_Matrix(data, containerId) {
+  // Implementation of createRooftop_Matrix
+  // ...
 
+  // Subscribe to updates
+  LinkedCharts.subscribe('rooftop_matrix', updateRooftop_Matrix);
+}
 
-// // Function to start the dashboard
-// function startDashboard() {
-//   // Helper functions to load JSON and CSV files using D3's d3.json and d3.csv
-//   function loadJSON(file) {
-//     return d3.json(file);
-//   }
-//   function loadCSV(file) {
-//     return d3.csv(file);
-//   }
+function updateRooftop_Matrix(data) {
+  // Implementation of updateRooftop_Matrix
+  // ...
+}
 
+function createParallel_coordinates(data, containerId) {
+  // Implementation of createParallel_coordinates
+  // ...
 
-//   // Function to import both files (data.json and gapminder.csv) using Promise.all
-//   function importFiles(file1, file2) {
-//     return Promise.all([loadJSON(file1), loadCSV(file2)]);
-//   }
+  // Subscribe to updates
+  LinkedCharts.subscribe('parallel_coordinates', updateParallel_coordinates);
+}
 
+function updateParallel_coordinates(data) {
+  // Implementation of updateParallel_coordinates
+  // ...
+}
+*/
 
-//   // File names for JSON and CSV files
-//   const file1 = "data.json";
-//   const file2 = "gapminder.csv";
-
-
-//   // Import the files and process the data
-//   importFiles(file1, file2).then(function (results) {
-//     // Store the JSON data into globalDataCountries using topojson.feature
-//     globalDataCountries = topojson.feature(results[0], results[0].objects.countries);
-    
-//     // Store the CSV data into globalDataCapita
-//     globalDataCapita = results[1];
-
-
-//     // Convert incomeperperson and alcconsumption data to numbers
-//     globalDataCapita.forEach(function (d) {
-//       d.incomeperperson = +d.incomeperperson;
-//       d.alcconsumption = +d.alcconsumption;
-//     });
-
-
-//     // Call functions to create the choropleth map and scatter plot
-//     createChoroplethMap();
-//     createScatterPlot();
-//   });
-// }
-
-
-
+// Call init function when the page loads
+window.onload = init;

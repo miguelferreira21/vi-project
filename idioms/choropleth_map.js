@@ -1,64 +1,25 @@
-function createChoroplethMap(data, containerId) {
-  // Clear previous choropleth map
-  d3.select(containerId).selectAll("*").remove();
+let svg, mapGroup, colorScale, legendHeight;
+let currentData;
 
+function createChoroplethMap(data, containerId) {
+  currentData = data;
   // Set up dimensions
   const margin = { top: 20, right: 20, bottom: 50, left: 80 };
   const width = window.innerWidth/2;
   const height = 3*(window.innerHeight/7);
 
-  // Data pre-processing
-  data.forEach(d => {
-    if (d.country === "United States") {
-      d.country = "United States of America";
-    }
-    else if (d.country === "Taiwan Province of China") {
-      d.country = "Taiwan";
-    }
-    else if (d.country === "Dominican Republic") {
-      d.country = "Dominican Rep.";
-    }
-    else if (d.country === "Bosnia and Herzegovina") {
-      d.country = "Bosnia and Herz.";
-    }
-    else if (d.country === "Ivory Coast") {
-      d.country = "Côte d'Ivoire";
-    }
-    else if (d.country === "North Macedonia") {
-      d.country = "Macedonia";
-    }
-    else if (d.country === "Palestinian Territories") {
-      d.country = "Palestine";
-    }      
-  });
-
-  const averagesArray = Array.from(d3.rollup(
-    data, 
-    v => ({
-      happiness_score: d3.mean(v, d => +d.happiness_score),
-      gdp_per_capita: d3.mean(v, d => +d.gdp_per_capita),
-      social_support: d3.mean(v, d => +d.social_support),
-      healthy_life_expectancy: d3.mean(v, d => +d.healthy_life_expectancy),
-    }),
-    d => d.country
-  )).map(([country, averages]) => ({
-    country,
-    ...averages
-  }));
-
   // Create SVG
-  const svg = d3.select(containerId)
+  svg = d3.select(containerId)
     .append("svg")
     .attr("width", width)
     .attr("height", height);
 
   // Create a group for the map and transformations
-  const mapGroup = svg.append("g")
+  mapGroup = svg.append("g")
     .attr("transform", `translate(${margin.left},${margin.top})`);
 
   // Create a color scale
-  const colorScale = d3.scaleSequential(d3.interpolateBlues)
-    .domain(d3.extent(averagesArray, d => +d.happiness_score));
+  colorScale = d3.scaleSequential(d3.interpolateBlues);
 
   // Load world map data
   d3.json("./data/countries-50m.json").then(function(worldData) {
@@ -108,94 +69,191 @@ function createChoroplethMap(data, containerId) {
       .data(countries.features)
       .join("path")
       .attr("d", path)
-      .attr("fill", d => {
-        const countryData = averagesArray.find(item => item.country === d.properties.name);
-        return countryData ? colorScale(+countryData.happiness_score) : "#ccc";
-      })
       .attr("stroke", "#fff")
       .attr("stroke-width", 0.05);
 
-    // Add mouseover and mouseout events
-    mapGroup.selectAll("path")
-      .on("mouseover", function(event, d) {
-        d3.select(this).attr("stroke", "#000").attr("stroke-width", 0.40);
-        const countryData = averagesArray.find(item => item.country === d.properties.name);
-        if (countryData) {
-          showTooltip(event, d, countryData);
-        }
-      })
-      .on("mouseout", function() {
-        d3.select(this).attr("stroke", "#fff").attr("stroke-width", 0.25);
-        hideTooltip();
-      });
+    // Subscribe to updates
+    LinkedCharts.subscribe('yearRange', handleYearRangeUpdate);
+    LinkedCharts.subscribe('dataUpdate', handleDataUpdate);
 
-    const legend = svg.append("g")
-      .attr("transform", `translate(${width - 120}, ${height - 180})`);
+    // Initial update
+    updateChoroplethMap(currentData);
+  });
+}
 
-    const legendWidth = 20;
-    const legendHeight = 180;
-
-    const legendScale = d3.scaleLinear()
-      .domain(d3.extent(averagesArray, d => +d.happiness_score))
-      .range([legendHeight, 0]);
-
-    const legendAxis = d3.axisRight(legendScale)
-      .ticks(5)
-      .tickSize(6);
-
-    legend.append("g")
-      .attr("transform", `translate(${legendWidth}, 0)`)
-      .call(legendAxis);
-
-    const legendGradient = legend.append("defs")
-      .append("linearGradient")
-      .attr("id", "legend-gradient")
-      .attr("x1", "0%")
-      .attr("y1", "100%")
-      .attr("x2", "0%")
-      .attr("y2", "0%");
-
-    legendGradient.selectAll("stop")
-      .data(colorScale.ticks().map((t, i, n) => ({ offset: `${100*i/n.length}%`, color: colorScale(t) })))
-      .enter().append("stop")
-      .attr("offset", d => d.offset)
-      .attr("stop-color", d => d.color);
-
-    legend.append("rect")
-      .attr("width", legendWidth)
-      .attr("height", legendHeight)
-      .style("fill", "url(#legend-gradient)");
-
-    legend.append("text")
-      .attr("x", 10)
-      .attr("y", -10)
-      .attr("text-anchor", "middle")
-      .text("Happiness Score");
+function handleYearRangeUpdate(yearRange) {
+  console.log("Received yearRange update:", yearRange);
+  const { startYear, endYear, selectedYear } = yearRange;
+  console.log("startYear:", startYear, "endYear:", endYear, "selectedYear:", selectedYear);
+  
+  console.log("Current data sample:", currentData.slice(0, 5)); // Log a sample of current data
+  
+  const filteredData = currentData.filter(d => {
+    const dataYear = parseInt(d.year);
+    
+    if (selectedYear !== null) {
+      const result = dataYear === parseInt(selectedYear);
+      return result;
+    } else {
+      const result = dataYear >= parseInt(startYear) && dataYear <= parseInt(endYear);
+      return result;
+    }
   });
   
-  // Tooltip functions
-  function showTooltip(event, d, countryData) {
-    const tooltip = d3.select("body").append("div")
-      .attr("class", "tooltip")
-      .style("position", "absolute")
-      .style("background-color", "white")
-      .style("border", "solid")
-      .style("border-width", "1px")
-      .style("border-radius", "5px")
-      .style("padding", "10px");
-
-    tooltip.html(`
-      <strong>${d.properties.name}</strong><br>
-      Happiness Score: ${countryData.happiness_score.toFixed(3)}<br>
-      GDP per capita: ${countryData.gdp_per_capita.toFixed(3)}<br>
-      Social support: ${countryData.social_support.toFixed(3)}<br>
-      Healthy life expectancy: ${countryData.healthy_life_expectancy.toFixed(3)}
-    `)
-      .style("left", (event.pageX + 10) + "px")
-      .style("top", (event.pageY - 28) + "px");
+  console.log("Filtered data length:", filteredData.length);
+  console.log("Filtered data sample:", filteredData.slice(0, 5)); // Log a sample of filtered data
+  
+  if (filteredData.length === 0) {
+    console.warn("No data found for the selected year range");
+    return; // Skip if no data is found
   }
   
-  function hideTooltip() {
-    d3.select(".tooltip").remove();
-  }
+  updateChoroplethMap(filteredData);
+}
+
+function handleDataUpdate(newData) {
+  currentData = newData;
+  updateChoroplethMap(currentData);
+}
+
+function updateChoroplethMap(data) {
+  // Data pre-processing
+  const processedData = preprocessData(data);
+
+  // Update color scale domain
+  const extent = d3.extent(processedData, d => d.happiness_score);
+  console.log("Happiness score extent:", extent);
+  colorScale.domain(extent);
+
+  // Update map colors
+  mapGroup.selectAll("path")
+    .attr("fill", d => {
+      if (!d || !d.properties) {
+        return "#ccc";
+      }
+      const countryData = processedData.find(item => item.country === d.properties.name);
+      return countryData ? colorScale(countryData.happiness_score) : "#ccc";
+    });
+ 
+  // Update legend
+  updateLegend(extent);
+
+  // Add or update mouseover and mouseout events
+  mapGroup.selectAll("path")
+    .on("mouseover", function(event, d) {
+      if (!d || !d.properties) return; // Skip if data is invalid
+      d3.select(this).attr("stroke", "#000").attr("stroke-width", 0.40);
+      const countryData = processedData.find(item => item.country === d.properties.name);
+      if (countryData) {
+        showTooltip(event, d, countryData);
+      }
+    })
+    .on("mouseout", function() {
+      d3.select(this).attr("stroke", "#fff").attr("stroke-width", 0.25);
+      hideTooltip();
+    });
+}
+
+function updateLegend(extent) {
+  const legendWidth = 20;
+  const legendHeight = 180;
+
+  // Remove any existing legend
+  svg.selectAll(".choropleth-legend").remove();
+
+  // Create new legend group
+  const legend = svg.append("g")
+    .attr("class", "choropleth-legend")
+    .attr("transform", `translate(${svg.attr("width") - 60}, ${svg.attr("height") - 220})`);
+
+  const legendScale = d3.scaleLinear()
+    .domain(extent)
+    .range([legendHeight, 0]);
+
+
+    const legendAxis = d3.axisRight(legendScale)
+      .tickValues(d3.range(extent[0], extent[1], (extent[1] - extent[0]) / 5).concat(extent[1]))
+      .tickFormat(d3.format(".2f"));
+
+  // Create gradient
+  const gradient = legend.append("defs")
+    .append("linearGradient")
+    .attr("id", "choropleth-legend-gradient")
+    .attr("x1", "0%")
+    .attr("y1", "100%")
+    .attr("x2", "0%")
+    .attr("y2", "0%");
+
+  gradient.selectAll("stop")
+    .data(d3.range(0, 1.1, 0.1))
+    .enter()
+    .append("stop")
+    .attr("offset", d => d * 100 + "%")
+    .attr("stop-color", d => colorScale(d3.quantile(extent, d)));
+
+  // Create rectangle for the gradient
+  legend.append("rect")
+    .attr("width", legendWidth)
+    .attr("height", legendHeight)
+    .style("fill", "url(#choropleth-legend-gradient)");
+
+  // Add axis to legend
+  legend.append("g")
+    .attr("transform", `translate(${legendWidth}, 0)`)
+    .call(legendAxis);
+
+  // Add title to legend
+  legend.append("text")
+    .attr("x", 10)
+    .attr("y", -10)
+    .attr("text-anchor", "middle")
+    .style("font-size", "12px")
+    .text("Happiness Score");
+}
+
+function showTooltip(event, d, countryData) {
+  const tooltip = d3.select("body").append("div")
+    .attr("class", "tooltip")
+    .style("position", "absolute")
+    .style("background-color", "white")
+    .style("border", "solid")
+    .style("border-width", "1px")
+    .style("border-radius", "5px")
+    .style("padding", "10px");
+
+  tooltip.html(`
+    <strong>${d.properties.name}</strong><br>
+    Happiness Score: ${countryData.happiness_score.toFixed(2)}<br>
+    GDP per capita: ${countryData.gdp_per_capita.toFixed(2)} GK$<br>
+    Social support: ${countryData.social_support.toFixed(2)}<br>
+    Healthy life expectancy: ${countryData.healthy_life_expectancy.toFixed(2)}
+  `)
+    .style("left", (event.pageX + 10) + "px")
+    .style("top", (event.pageY - 28) + "px");
+}
+
+function hideTooltip() {
+  d3.select(".tooltip").remove();
+}
+
+function preprocessData(data) {
+  return data.map(d => {
+    let country = d.country;
+    if (country === "United States") country = "United States of America";
+    else if (country === "Taiwan Province of China") country = "Taiwan";
+    else if (country === "Dominican Republic") country = "Dominican Rep.";
+    else if (country === "Bosnia and Herzegovina") country = "Bosnia and Herz.";
+    else if (country === "Ivory Coast") country = "Côte d'Ivoire";
+    else if (country === "North Macedonia") country = "Macedonia";
+    else if (country === "Palestinian Territories") country = "Palestine";
+    
+    return {
+      ...d,
+      country: country,
+      happiness_score: parseFloat(d.happiness_score),
+      gdp_per_capita: parseFloat(d.gdp_per_capita),
+      social_support: parseFloat(d.social_support),
+      healthy_life_expectancy: parseFloat(d.healthy_life_expectancy)
+    };
+  });
 }
