@@ -167,7 +167,7 @@ function createRooftopMatrix(data, containerId) {
 // Function to calculate correlation, ignoring missing values
 function calculateCorrelation(data, xCol, yCol) {
     // Filter out rows with missing values for xCol or yCol
-    var filteredData = data.filter(d => d[xCol] != -1 && d[yCol] != -1);
+    var filteredData = data.filter(d => d[xCol] != -999 && d[yCol] != -999);
 
     if (filteredData.length === 0) return 0; // If no valid data is left, return 0 correlation
 
