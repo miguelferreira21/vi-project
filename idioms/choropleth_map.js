@@ -1,5 +1,5 @@
 let svg, mapGroup, colorScale, legendHeight;
-let currentData;
+let currentData, initialExtent;
 
 function createChoroplethMap(data, containerId) {
   currentData = data;
@@ -18,8 +18,11 @@ function createChoroplethMap(data, containerId) {
   mapGroup = svg.append("g")
     .attr("transform", `translate(${margin.left},${margin.top})`);
 
-  // Create a color scale
-  colorScale = d3.scaleSequential(d3.interpolateBlues);
+  // Create a color scale based on initial data
+  const processedInitialData = preprocessData(data);
+  initialExtent = d3.extent(processedInitialData, d => d.happiness_score);
+  colorScale = d3.scaleSequential(d3.interpolateBlues)
+    .domain(initialExtent);
 
   // Load world map data
   d3.json("./data/countries-50m.json").then(function(worldData) {
@@ -76,6 +79,9 @@ function createChoroplethMap(data, containerId) {
     LinkedCharts.subscribe('yearRange', handleYearRangeUpdate);
     LinkedCharts.subscribe('dataUpdate', handleDataUpdate);
 
+    // Create static legend based on initial data
+    createStaticLegend(currentData);
+
     // Initial update
     updateChoroplethMap(currentData);
   });
@@ -120,10 +126,8 @@ function updateChoroplethMap(data) {
   // Data pre-processing
   const processedData = preprocessData(data);
 
-  // Update color scale domain
-  const extent = d3.extent(processedData, d => d.happiness_score);
-  console.log("Happiness score extent:", extent);
-  colorScale.domain(extent);
+  // Use the initial extent for coloring, not the current data extent
+  console.log("Happiness score extent (initial):", initialExtent);
 
   // Update map colors
   mapGroup.selectAll("path")
@@ -135,9 +139,6 @@ function updateChoroplethMap(data) {
       return countryData ? colorScale(countryData.happiness_score) : "#ccc";
     });
  
-  // Update legend
-  updateLegend(extent);
-
   // Add or update mouseover and mouseout events
   mapGroup.selectAll("path")
     .on("mouseover", function(event, d) {
@@ -154,14 +155,13 @@ function updateChoroplethMap(data) {
     });
 }
 
-function updateLegend(extent) {
+function createStaticLegend(initialData) {
+  const processedInitialData = preprocessData(initialData);
+  const extent = d3.extent(processedInitialData, d => d.happiness_score);
+  
   const legendWidth = 20;
   const legendHeight = 180;
 
-  // Remove any existing legend
-  svg.selectAll(".choropleth-legend").remove();
-
-  // Create new legend group
   const legend = svg.append("g")
     .attr("class", "choropleth-legend")
     .attr("transform", `translate(${svg.attr("width") - 60}, ${svg.attr("height") - 220})`);
@@ -170,10 +170,9 @@ function updateLegend(extent) {
     .domain(extent)
     .range([legendHeight, 0]);
 
-
-    const legendAxis = d3.axisRight(legendScale)
-      .tickValues(d3.range(extent[0], extent[1], (extent[1] - extent[0]) / 5).concat(extent[1]))
-      .tickFormat(d3.format(".2f"));
+  const legendAxis = d3.axisRight(legendScale)
+    .tickValues(d3.range(extent[0], extent[1], (extent[1] - extent[0]) / 5).concat(extent[1]))
+    .tickFormat(d3.format(".2f"));
 
   // Create gradient
   const gradient = legend.append("defs")
@@ -184,6 +183,7 @@ function updateLegend(extent) {
     .attr("x2", "0%")
     .attr("y2", "0%");
 
+  // Use the same color scale as defined in createChoroplethMap
   gradient.selectAll("stop")
     .data(d3.range(0, 1.1, 0.1))
     .enter()
