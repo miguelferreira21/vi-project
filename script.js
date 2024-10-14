@@ -8,6 +8,9 @@ function init() {
     createChoroplethMap(data, ".Choropleth");
     //createRooftop_Matrix(data, ".Rooftop_Matrix");
     //createParallel_coordinates(data, ".Parallel_coordinates");
+
+    // Filters
+    createFilters(data, ".Filters")
     
     // Set up data binding
     setupDataBinding();
