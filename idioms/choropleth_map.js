@@ -19,8 +19,7 @@ function createChoroplethMap(data, containerId) {
     .attr("transform", `translate(${margin.left},${margin.top})`);
 
   // Create a color scale based on initial data
-  const processedInitialData = preprocessData(data);
-  initialExtent = d3.extent(processedInitialData, d => d.happiness_score);
+  initialExtent = d3.extent(data, d => d.happiness_score);
   colorScale = d3.scaleSequential(d3.interpolateBlues)
     .domain(initialExtent);
 
@@ -156,8 +155,7 @@ function updateChoroplethMap(data) {
 }
 
 function createStaticLegend(initialData) {
-  const processedInitialData = preprocessData(initialData);
-  const extent = d3.extent(processedInitialData, d => d.happiness_score);
+  const extent = d3.extent(initialData, d => d.happiness_score);
   
   const legendWidth = 20;
   const legendHeight = 180;
