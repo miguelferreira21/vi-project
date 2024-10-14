@@ -4,17 +4,6 @@ function createRooftopMatrix(data, containerId) {
 
     // Create a nested array to store the correlation values
     var correlations = [];
-    for (var i = 0; i < numericalColumns.length; i++) {
-        var row = [];
-        for (var j = 0; j < numericalColumns.length; j++) {
-            if (i < j) {  // Only fill the upper-right triangle
-                row.push(calculateCorrelation(data, numericalColumns[i], numericalColumns[j]));
-            } else {
-                row.push(null);  // Keep the lower triangle empty
-            }
-        }
-        correlations.push(row);
-    }
 
     const margin = { top: 50, right: 50, bottom: 50, left: 200 };
     const width = window.innerWidth / 2 - margin.left - margin.right;
@@ -45,42 +34,73 @@ function createRooftopMatrix(data, containerId) {
         .style("pointer-events", "none")
         .style("opacity", 0);  // Initially hidden
 
-    // Create the matrix cells in a diamond/triangular shape
-    correlations.forEach((row, i) => {
-        row.forEach((value, j) => {
-            if (value != null) {
-                svg.append("rect")
-                    .attr("x", ((j - i) * cellSize / Math.SQRT2))  // Position in diagonal layout
-                    .attr("y", ((i + j) * cellSize / Math.SQRT2))
-                    .attr("width", cellSize)
-                    .attr("height", cellSize)
-                    .attr("transform", `rotate(45 ${(j - i) * cellSize / Math.SQRT2}, ${(i + j) * cellSize / Math.SQRT2})`)  // Rotate by 45 degrees
-                    .style("fill", colorScale(value))
-                    .style("stroke", "black") // Set black stroke for border
-                    .style("stroke-width", 1)  // Set border width to 1 pixel
-                    .on("mouseover", function(event, d) {  // Show tooltip on hover
-                        d3.select(this)
-                            .raise()
-                            .style("stroke-width", 3);  // Increase stroke width for highlighting
-
-                        tooltip.transition().duration(200).style("opacity", 1);
-                        tooltip.html(`Correlation: ${value.toFixed(2)}`)  // Show the correlation value
-                            .style("left", (event.pageX + 10) + "px")  // Position tooltip near the mouse
-                            .style("top", (event.pageY - 10) + "px");
-                    })
-                    .on("mousemove", function(event, d) {  // Move the tooltip with the mouse
-                        tooltip.style("left", (event.pageX + 10) + "px")
-                               .style("top", (event.pageY - 10) + "px");
-                    })
-                    .on("mouseout", function(event, d) {  // Hide tooltip on mouseout
-                        d3.select(this)
-                            .style("stroke-width", 1);  // Reset stroke width
-
-                        tooltip.transition().duration(200).style("opacity", 0);
-                    });
+    // Function to create/update the matrix cells
+    function updateMatrix(filteredData) {
+        // Recalculate correlations
+        correlations = [];
+        for (var i = 0; i < numericalColumns.length; i++) {
+            var row = [];
+            for (var j = 0; j < numericalColumns.length; j++) {
+                if (i < j) {  // Only fill the upper-right triangle
+                    row.push(calculateCorrelation(filteredData, numericalColumns[i], numericalColumns[j]));
+                } else {
+                    row.push(null);  // Keep the lower triangle empty
+                }
             }
-        });
-    });
+            correlations.push(row);
+        }
+
+        // Flatten the correlations array for easier data binding
+        const flatCorrelations = correlations.flatMap((row, i) => 
+            row.map((value, j) => ({ value, i, j }))
+        ).filter(d => d.value !== null);
+
+        // Create/update the matrix cells
+        const cells = svg.selectAll("rect")
+            .data(flatCorrelations, d => `${d.i}-${d.j}`);
+
+        cells.enter()
+            .append("rect")
+            .attr("x", d => ((d.j - d.i) * cellSize / Math.SQRT2))
+            .attr("y", d => ((d.i + d.j) * cellSize / Math.SQRT2))
+            .attr("width", cellSize)
+            .attr("height", cellSize)
+            .attr("transform", d => `rotate(45 ${(d.j - d.i) * cellSize / Math.SQRT2}, ${(d.i + d.j) * cellSize / Math.SQRT2})`)
+            .style("stroke", "black")
+            .style("stroke-width", 1)
+            .merge(cells)
+            .transition()
+            .duration(500)
+            .style("fill", d => colorScale(d.value));
+
+        cells.exit().remove();
+
+        // Update event listeners
+        svg.selectAll("rect")
+            .on("mouseover", function(event, d) {
+                d3.select(this)
+                    .raise()
+                    .style("stroke-width", 3);
+
+                tooltip.transition().duration(200).style("opacity", 1);
+                tooltip.html(`Correlation: ${d.value.toFixed(2)}<br>`)
+                    .style("left", (event.pageX + 10) + "px")
+                    .style("top", (event.pageY - 10) + "px");
+            })
+            .on("mousemove", function(event, d) {
+                tooltip.style("left", (event.pageX + 10) + "px")
+                       .style("top", (event.pageY - 10) + "px");
+            })
+            .on("mouseout", function(event, d) {
+                d3.select(this)
+                    .style("stroke-width", 1);
+
+                tooltip.transition().duration(200).style("opacity", 0);
+            });
+    }
+
+    // Initial update with all data
+    updateMatrix(data);
 
     // Create a scale for positioning the labels
     var yScale = d3.scaleBand()
@@ -132,6 +152,16 @@ function createRooftopMatrix(data, containerId) {
         .attr("y2", yScale(numericalColumns.length - 1) + yScale.bandwidth()) // End at the position of the last horizontal line
         .style("stroke", "black") // Line color
         .style("stroke-width", 1); // Line width
+
+    // Function to handle year range updates
+    function handleYearRangeUpdate(yearRange) {
+        const { startYear, endYear } = yearRange;
+        const filteredData = data.filter(d => d.year >= startYear && d.year <= endYear);
+        updateMatrix(filteredData);
+    }
+
+    // Subscribe to year range updates
+    LinkedCharts.subscribe('yearRange', handleYearRangeUpdate);
 }
 
 // Function to calculate correlation, ignoring missing values
