@@ -13,12 +13,12 @@ function createFilters(data, containerId) {
     data.forEach(d => {
         d.temperature = +d.temperature;
         d.fertility_rate = +d.fertility_rate;
-    })
+    });
 
     // Get unique regions and add 'All' at the beginning
     regions = ['All', ...new Set(data.map(d => d.region))];
 
-    const minTemp = d3.min(data, d => d.temperature);
+    const minTemp = d3.min(data.filter(d => +d.temperature !== -999.0), d => +d.temperature);
     const maxTemp = d3.max(data, d => d.temperature);
     const minFert = 0
     const maxFert = d3.max(data, d => d.fertility_rate);
@@ -179,7 +179,11 @@ function createFilters(data, containerId) {
                     filteredData = sortedData.filter(d => +d.happiness_score >= thresholdScore);
                     LinkedCharts.publish('dataUpdate', filteredData);
                 } else if (filter.id == 2) {
-                    filteredData = data.filter(d => +d.temperature <= filterValue)
+                    if (filterValue == filter.finish) {
+                        filteredData = data.filter(d => +d.temperature <= filterValue);
+                    } else {
+                        filteredData = data.filter(d => +d.temperature <= filterValue && +d.temperature !== -999.0)
+                    }
                     LinkedCharts.publish('dataUpdate', filteredData);
                 } else if (filter.id == 3) {
                     filteredData = data.filter(d => +d.fertility_rate <= filterValue)
