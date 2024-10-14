@@ -1,5 +1,5 @@
 let svg, mapGroup, colorScale, legendHeight;
-let currentData;
+let currentData, initialExtent;
 
 function createChoroplethMap(data, containerId) {
   currentData = data;
@@ -18,8 +18,10 @@ function createChoroplethMap(data, containerId) {
   mapGroup = svg.append("g")
     .attr("transform", `translate(${margin.left},${margin.top})`);
 
-  // Create a color scale
-  colorScale = d3.scaleSequential(d3.interpolateBlues);
+  // Create a color scale based on initial data
+  initialExtent = d3.extent(data, d => d.happiness_score);
+  colorScale = d3.scaleSequential(d3.interpolateBlues)
+    .domain(initialExtent);
 
   // Load world map data
   d3.json("./data/countries-50m.json").then(function(worldData) {
@@ -76,6 +78,9 @@ function createChoroplethMap(data, containerId) {
     LinkedCharts.subscribe('yearRange', handleYearRangeUpdate);
     LinkedCharts.subscribe('dataUpdate', handleDataUpdate);
 
+    // Create static legend based on initial data
+    createStaticLegend(currentData);
+
     // Initial update
     updateChoroplethMap(currentData);
   });
@@ -120,10 +125,8 @@ function updateChoroplethMap(data) {
   // Data pre-processing
   const processedData = preprocessData(data);
 
-  // Update color scale domain
-  const extent = d3.extent(processedData, d => d.happiness_score);
-  console.log("Happiness score extent:", extent);
-  colorScale.domain(extent);
+  // Use the initial extent for coloring, not the current data extent
+  console.log("Happiness score extent (initial):", initialExtent);
 
   // Update map colors
   mapGroup.selectAll("path")
@@ -135,14 +138,11 @@ function updateChoroplethMap(data) {
       return countryData ? colorScale(countryData.happiness_score) : "#ccc";
     });
  
-  // Update legend
-  updateLegend(extent);
-
   // Add or update mouseover and mouseout events
   mapGroup.selectAll("path")
     .on("mouseover", function(event, d) {
       if (!d || !d.properties) return; // Skip if data is invalid
-      d3.select(this).attr("stroke", "#000").attr("stroke-width", 0.40);
+      d3.select(this).raise().attr("stroke", "#000").attr("stroke-width", 0.40);
       const countryData = processedData.find(item => item.country === d.properties.name);
       if (countryData) {
         showTooltip(event, d, countryData);
@@ -154,14 +154,12 @@ function updateChoroplethMap(data) {
     });
 }
 
-function updateLegend(extent) {
+function createStaticLegend(initialData) {
+  const extent = d3.extent(initialData, d => d.happiness_score);
+  
   const legendWidth = 20;
   const legendHeight = 180;
 
-  // Remove any existing legend
-  svg.selectAll(".choropleth-legend").remove();
-
-  // Create new legend group
   const legend = svg.append("g")
     .attr("class", "choropleth-legend")
     .attr("transform", `translate(${svg.attr("width") - 60}, ${svg.attr("height") - 220})`);
@@ -170,10 +168,9 @@ function updateLegend(extent) {
     .domain(extent)
     .range([legendHeight, 0]);
 
-
-    const legendAxis = d3.axisRight(legendScale)
-      .tickValues(d3.range(extent[0], extent[1], (extent[1] - extent[0]) / 5).concat(extent[1]))
-      .tickFormat(d3.format(".2f"));
+  const legendAxis = d3.axisRight(legendScale)
+    .tickValues(d3.range(extent[0], extent[1], (extent[1] - extent[0]) / 5).concat(extent[1]))
+    .tickFormat(d3.format(".2f"));
 
   // Create gradient
   const gradient = legend.append("defs")
@@ -184,6 +181,7 @@ function updateLegend(extent) {
     .attr("x2", "0%")
     .attr("y2", "0%");
 
+  // Use the same color scale as defined in createChoroplethMap
   gradient.selectAll("stop")
     .data(d3.range(0, 1.1, 0.1))
     .enter()
@@ -226,7 +224,9 @@ function showTooltip(event, d, countryData) {
     Happiness Score: ${countryData.happiness_score.toFixed(2)}<br>
     GDP per capita: ${countryData.gdp_per_capita.toFixed(2)} GK$<br>
     Social support: ${countryData.social_support.toFixed(2)}<br>
-    Healthy life expectancy: ${countryData.healthy_life_expectancy.toFixed(2)}
+    Healthy life expectancy: ${countryData.healthy_life_expectancy.toFixed(2)}<br>
+    Temperature: ${countryData.temperature.toFixed(2)} ºC<br>
+    Fertility Rate: ${countryData.fertility_rate.toFixed(2)}
   `)
     .style("left", (event.pageX + 10) + "px")
     .style("top", (event.pageY - 28) + "px");
@@ -237,23 +237,33 @@ function hideTooltip() {
 }
 
 function preprocessData(data) {
-  return data.map(d => {
-    let country = d.country;
-    if (country === "United States") country = "United States of America";
-    else if (country === "Taiwan Province of China") country = "Taiwan";
-    else if (country === "Dominican Republic") country = "Dominican Rep.";
-    else if (country === "Bosnia and Herzegovina") country = "Bosnia and Herz.";
-    else if (country === "Ivory Coast") country = "Côte d'Ivoire";
-    else if (country === "North Macedonia") country = "Macedonia";
-    else if (country === "Palestinian Territories") country = "Palestine";
-    
+  // Group the data by country
+  const groupedData = d3.group(data, d => d.country);
+
+  // Calculate averages for each country
+  const averagedData = Array.from(groupedData, ([country, entries]) => {
+    const average = arr => d3.mean(arr, d => parseFloat(d));
+
+    // Calculate averages for each attribute
+    const avgHappinessScore = average(entries.map(d => d.happiness_score));
+    const avgGdpPerCapita = average(entries.map(d => d.gdp_per_capita));
+    const avgSocialSupport = average(entries.map(d => d.social_support));
+    const avgHealthyLifeExpectancy = average(entries.map(d => d.healthy_life_expectancy));
+    const avgTemperature = average(entries.map(d => d.temperature));
+    const avgFertilityRate = average(entries.map(d => d.fertility_rate));
+
+
+
     return {
-      ...d,
       country: country,
-      happiness_score: parseFloat(d.happiness_score),
-      gdp_per_capita: parseFloat(d.gdp_per_capita),
-      social_support: parseFloat(d.social_support),
-      healthy_life_expectancy: parseFloat(d.healthy_life_expectancy)
+      happiness_score: avgHappinessScore,
+      gdp_per_capita: avgGdpPerCapita,
+      social_support: avgSocialSupport,
+      healthy_life_expectancy: avgHealthyLifeExpectancy,
+      temperature: avgTemperature,
+      fertility_rate: avgFertilityRate
     };
   });
+
+  return averagedData;
 }

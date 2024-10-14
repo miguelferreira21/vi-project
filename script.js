@@ -6,18 +6,18 @@ function init() {
     
     createLineChart(data, ".LineChart");
     createChoroplethMap(data, ".Choropleth");
-    //createRooftop_Matrix(data, ".Rooftop_Matrix");
+    createRooftopMatrix(data, ".Rooftop_Matrix");
     //createParallel_coordinates(data, ".Parallel_coordinates");
 
     // Filters
     createFilters(data, ".Filters")
     
     // Set up data binding
-    setupDataBinding();
+    //setupDataBinding();
   });
 }
 
-function setupDataBinding() {
+/*function setupDataBinding() {
   // This function would set up any data binding mechanisms
   // For now, we'll just add a button to simulate data updates
   d3.select("body")
@@ -35,7 +35,7 @@ function updateData() {
 
   // Use the LinkedCharts system to update all charts
   LinkedCharts.publish('dataUpdate', globalData);
-}
+}*/
 
 // Uncomment and update these functions when implementing them
 /*
