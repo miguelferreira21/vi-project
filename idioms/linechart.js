@@ -12,16 +12,16 @@ function createLineChart(data, containerId) {
 
     averageArray = Array.from(averagePerYear, ([year, happiness_score]) => ({ year, happiness_score }));
 
-    const margin = {top: 50, right: 10, bottom: 50, left: -10};
-    const width = window.innerWidth / 2;
-    const height = window.innerHeight / 8.5;
+    const margin = {top: scaleValue(50), right: scaleValue(10), bottom: scaleValue(50), left: scaleValue(-10)};
+    const width = scaleValue(REFERENCE_WIDTH / 2);
+    const height = scaleValue(REFERENCE_HEIGHT / 8.5);
 
     lineChartSvg = d3.select(containerId)
         .append("svg")
         .attr("width", width + margin.left + margin.right)
         .attr("height", height + margin.top + margin.bottom)
         .append("g")
-        .attr("transform", `translate(${margin.left},${margin.top})`);
+        .attr("transform", `translate(${margin.left},${margin.top - scaleValue(25)})`);
 
     x = d3.scaleLinear()
         .domain(d3.extent(averageArray, d => d.year))
@@ -111,6 +111,34 @@ function createLineChart(data, containerId) {
     // Subscribe to updates
     LinkedCharts.subscribe('dataUpdate', updateLineChart);
 }
+
+function updateLineChartSize() {
+    const margin = {top: scaleValue(50), right: scaleValue(10), bottom: scaleValue(50), left: scaleValue(-10)};
+    const width = scaleValue(REFERENCE_WIDTH / 2);
+    const height = scaleValue(REFERENCE_HEIGHT / 8.5);
+
+    lineChartSvg
+        .attr("width", width + margin.left + margin.right)
+        .attr("height", height + margin.top + margin.bottom);
+
+    x.range([scaleValue(50), width - scaleValue(50)]);
+    y.range([height - scaleValue(20), scaleValue(20)]);
+
+    chartGroup.select(".line").attr("d", line);
+    chartGroup.selectAll(".dot")
+        .attr("cx", d => x(d.year))
+        .attr("cy", d => y(d.happiness_score))
+        .attr("r", scaleValue(4));
+
+    sliderGroup.attr("transform", `translate(0, ${height + scaleValue(10)})`);
+    slider.width(width - scaleValue(100));
+
+    rangeDisplay.attr('transform', `translate(${width/2}, ${scaleValue(40)})`);
+
+    // Trigger an update to refresh the chart
+    updateChart(slider.value()[0], slider.value()[1]);
+}
+
 
 function updateLineChart(data) {
     // Recalculate averageArray with new data

@@ -5,9 +5,9 @@ function createRooftopMatrix(data, containerId) {
     // Create a nested array to store the correlation values
     var correlations = [];
 
-    const margin = { top: 50, right: 50, bottom: 50, left: 200 };
-    const width = window.innerWidth / 2 - margin.left - margin.right;
-    const height = 0.8 * (3 * (window.innerHeight / 7)) - margin.top - margin.bottom;
+    const margin = { top: scaleValue(50), right: scaleValue(50), bottom: scaleValue(50), left: scaleValue(200) };
+    const width = scaleValue(REFERENCE_WIDTH / 2) - margin.left - margin.right;
+    const height = scaleValue(0.8 * (3 * (REFERENCE_HEIGHT / 7))) - margin.top - margin.bottom;
     const cellSize = Math.min(width, height) / numericalColumns.length;
 
     // Create the SVG element
@@ -16,7 +16,7 @@ function createRooftopMatrix(data, containerId) {
         .attr("width", width + margin.left + margin.right)
         .attr("height", 1.2 * height + margin.top + margin.bottom)
         .append("g")
-        .attr("transform", `translate(${margin.left},${margin.top})`);
+        .attr("transform", `translate(${margin.left},${margin.top - 25})`);
 
     // Create the color scale for the matrix cells
     var colorScale = d3.scaleLinear()
@@ -160,6 +160,32 @@ function createRooftopMatrix(data, containerId) {
 
     // Subscribe to year range updates
     LinkedCharts.subscribe('yearRange', handleYearRangeUpdate);
+}
+
+function updateRooftopMatrixSize() {
+    const margin = { top: scaleValue(50), right: scaleValue(50), bottom: scaleValue(50), left: scaleValue(200) };
+    const width = scaleValue(REFERENCE_WIDTH / 2) - margin.left - margin.right;
+    const height = scaleValue(0.8 * (3 * (REFERENCE_HEIGHT / 7))) - margin.top - margin.bottom;
+    const cellSize = Math.min(width, height) / numericalColumns.length;
+
+    d3.select(".Rooftop_Matrix svg")
+        .attr("width", width + margin.left + margin.right)
+        .attr("height", 1.2 * height + margin.top + margin.bottom);
+
+    d3.select(".Rooftop_Matrix").selectAll("rect")
+        .attr("x", d => ((d.j - d.i) * cellSize / Math.SQRT2))
+        .attr("y", d => ((d.i + d.j) * cellSize / Math.SQRT2))
+        .attr("width", cellSize)
+        .attr("height", cellSize)
+        .attr("transform", d => `rotate(45 ${(d.j - d.i) * cellSize / Math.SQRT2}, ${(d.i + d.j) * cellSize / Math.SQRT2})`);
+
+    // Update y-axis scale
+    const yScale = d3.scaleBand()
+        .domain(d3.range(numericalColumns.length))
+        .range([0, numericalColumns.length * (Math.sqrt(2 * (cellSize ** 2)))]);
+
+    d3.select(".Rooftop_Matrix .y.axis")
+        .call(d3.axisLeft(yScale).tickFormat(i => formatLabel(numericalColumns[i])));
 }
 
 // Function to calculate correlation, ignoring missing values

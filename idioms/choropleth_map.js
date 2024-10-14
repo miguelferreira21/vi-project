@@ -4,9 +4,9 @@ let currentData, initialExtent;
 function createChoroplethMap(data, containerId) {
   currentData = data;
   // Set up dimensions
-  const margin = { top: 20, right: 20, bottom: 50, left: 80 };
-  const width = window.innerWidth/2;
-  const height = 3*(window.innerHeight/7);
+  const margin = { top: scaleValue(20), right: scaleValue(20), bottom: scaleValue(50), left: scaleValue(80) };
+  const width = scaleValue(REFERENCE_WIDTH / 2);
+  const height = scaleValue(3 * (REFERENCE_HEIGHT / 7));
 
   // Create SVG
   svg = d3.select(containerId)
@@ -84,6 +84,27 @@ function createChoroplethMap(data, containerId) {
     // Initial update
     updateChoroplethMap(currentData);
   });
+}
+
+function updateChoroplethMapSize() {
+  const width = scaleValue(REFERENCE_WIDTH / 2);
+  const height = scaleValue(3 * (REFERENCE_HEIGHT / 7));
+
+  svg
+      .attr("width", width)
+      .attr("height", height);
+
+  // Update projection and path
+  const countries = mapGroup.selectAll("path").data();
+  const projection = d3.geoMercator().fitSize([width, height], {type: "FeatureCollection", features: countries});
+  const path = d3.geoPath().projection(projection);
+
+  mapGroup.selectAll("path")
+      .attr("d", path);
+
+  // Update legend position
+  svg.select(".choropleth-legend")
+      .attr("transform", `translate(${width - scaleValue(60)}, ${height - scaleValue(220)})`);
 }
 
 function handleYearRangeUpdate(yearRange) {
