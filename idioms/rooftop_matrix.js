@@ -55,8 +55,12 @@ function createRooftopMatrix(data, containerId) {
             row.map((value, j) => ({ value, i, j }))
         ).filter(d => d.value !== null);
 
+        // Separate layers: One for cells, one for symbols
+        const cellGroup = svg.append("g").attr("class", "cell-group");
+        const symbolGroup = svg.append("g").attr("class", "symbol-group");
+
         // Create/update the matrix cells
-        const cells = svg.selectAll("rect")
+        const cells = cellGroup.selectAll("rect")
             .data(flatCorrelations, d => `${d.i}-${d.j}`);
 
         cells.enter()
@@ -73,26 +77,47 @@ function createRooftopMatrix(data, containerId) {
 
         cells.exit().remove();
 
-        // Update event listeners
+        // Add/update symbols for strong correlations in a separate layer
+        const strongCorrelations = flatCorrelations.filter(d => Math.abs(d.value) > 0.7);
+
+        const symbols = symbolGroup.selectAll("image")
+            .data(strongCorrelations, d => `${d.i}-${d.j}`);
+
+        symbols.enter()
+            .append("image")
+            .attr("xlink:href", "placeholders/icons8-cross.svg")
+            .attr("x", d => ((d.j - d.i) * cellSize / Math.SQRT2) - cellSize / 2)  // Adjust position
+            .attr("y", d => ((d.i + d.j) * cellSize / Math.SQRT2) + cellSize / 5)  // Adjust position
+            .attr("width", cellSize)   // Adjust size
+            .attr("height", cellSize)  // Adjust size
+            .style("pointer-events", "none")  // Allow hover events to pass through the image
+            .merge(symbols)
+            .attr("data-index", d => `${d.i}-${d.j}`);  // Attach data-index for hover interactions
+
+        symbols.exit().remove();
+
+        // Handle hover interactions only on cells (not affecting symbols)
         svg.selectAll("rect")
             .on("mouseover", function(event, d) {
+                // Highlight the cell (but do not raise it)
                 d3.select(this)
                     .raise()
                     .style("stroke-width", 3);
 
+                // Show tooltip
                 tooltip.transition().duration(200).style("opacity", 1);
                 tooltip.html(`Correlation: ${d.value.toFixed(2)}<br>`)
                     .style("left", (event.pageX + 10) + "px")
                     .style("top", (event.pageY - 10) + "px");
             })
             .on("mousemove", function(event, d) {
+                // Move tooltip with the mouse
                 tooltip.style("left", (event.pageX + 10) + "px")
-                       .style("top", (event.pageY - 10) + "px");
+                    .style("top", (event.pageY - 10) + "px");
             })
             .on("mouseout", function(event, d) {
-                d3.select(this)
-                    .style("stroke-width", 1);
-
+                // Reset the stroke width and hide the tooltip
+                d3.select(this).style("stroke-width", 1);
                 tooltip.transition().duration(200).style("opacity", 0);
             });
     }
