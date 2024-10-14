@@ -73,3 +73,13 @@
   border: 1px solid black;
 }
 
+.tbd-text {
+  font-size: 40px;
+  color: black;
+  text-align: center; /* Centers the text horizontally */
+  line-height: 100%; /* Adjust the line-height to center the text vertically */
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
