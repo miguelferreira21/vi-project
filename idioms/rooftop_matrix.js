@@ -5,7 +5,7 @@ function createRooftopMatrix(data, containerId) {
     // Create a nested array to store the correlation values
     var correlations = [];
 
-    const margin = { top: 50, right: 50, bottom: 50, left: 200 };
+    const margin = { top: 50, right: 0, bottom: 50, left: innerWidth*0.25 };
     const width = window.innerWidth / 2 - margin.left - margin.right;
     const height = 0.8 * (3 * (window.innerHeight / 7)) - margin.top - margin.bottom;
     const cellSize = Math.min(width, height) / numericalColumns.length;
