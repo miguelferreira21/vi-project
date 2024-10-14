@@ -226,7 +226,9 @@ function showTooltip(event, d, countryData) {
     Happiness Score: ${countryData.happiness_score.toFixed(2)}<br>
     GDP per capita: ${countryData.gdp_per_capita.toFixed(2)} GK$<br>
     Social support: ${countryData.social_support.toFixed(2)}<br>
-    Healthy life expectancy: ${countryData.healthy_life_expectancy.toFixed(2)}
+    Healthy life expectancy: ${countryData.healthy_life_expectancy.toFixed(2)}<br>
+    Temperature: ${countryData.temperature.toFixed(2)} ºC<br>
+    Fertility Rate: ${countryData.fertility_rate.toFixed(2)}
   `)
     .style("left", (event.pageX + 10) + "px")
     .style("top", (event.pageY - 28) + "px");
@@ -249,13 +251,19 @@ function preprocessData(data) {
     const avgGdpPerCapita = average(entries.map(d => d.gdp_per_capita));
     const avgSocialSupport = average(entries.map(d => d.social_support));
     const avgHealthyLifeExpectancy = average(entries.map(d => d.healthy_life_expectancy));
+    const avgTemperature = average(entries.map(d => d.temperature));
+    const avgFertilityRate = average(entries.map(d => d.fertility_rate));
+
+
 
     return {
       country: country,
       happiness_score: avgHappinessScore,
       gdp_per_capita: avgGdpPerCapita,
       social_support: avgSocialSupport,
-      healthy_life_expectancy: avgHealthyLifeExpectancy
+      healthy_life_expectancy: avgHealthyLifeExpectancy,
+      temperature: avgTemperature,
+      fertility_rate: avgFertilityRate
     };
   });
 
