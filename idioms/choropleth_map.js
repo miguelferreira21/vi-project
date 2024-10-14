@@ -143,7 +143,7 @@ function updateChoroplethMap(data) {
   mapGroup.selectAll("path")
     .on("mouseover", function(event, d) {
       if (!d || !d.properties) return; // Skip if data is invalid
-      d3.select(this).attr("stroke", "#000").attr("stroke-width", 0.40);
+      d3.select(this).raise().attr("stroke", "#000").attr("stroke-width", 0.40);
       const countryData = processedData.find(item => item.country === d.properties.name);
       if (countryData) {
         showTooltip(event, d, countryData);
@@ -237,23 +237,27 @@ function hideTooltip() {
 }
 
 function preprocessData(data) {
-  return data.map(d => {
-    let country = d.country;
-    if (country === "United States") country = "United States of America";
-    else if (country === "Taiwan Province of China") country = "Taiwan";
-    else if (country === "Dominican Republic") country = "Dominican Rep.";
-    else if (country === "Bosnia and Herzegovina") country = "Bosnia and Herz.";
-    else if (country === "Ivory Coast") country = "Côte d'Ivoire";
-    else if (country === "North Macedonia") country = "Macedonia";
-    else if (country === "Palestinian Territories") country = "Palestine";
-    
+  // Group the data by country
+  const groupedData = d3.group(data, d => d.country);
+
+  // Calculate averages for each country
+  const averagedData = Array.from(groupedData, ([country, entries]) => {
+    const average = arr => d3.mean(arr, d => parseFloat(d));
+
+    // Calculate averages for each attribute
+    const avgHappinessScore = average(entries.map(d => d.happiness_score));
+    const avgGdpPerCapita = average(entries.map(d => d.gdp_per_capita));
+    const avgSocialSupport = average(entries.map(d => d.social_support));
+    const avgHealthyLifeExpectancy = average(entries.map(d => d.healthy_life_expectancy));
+
     return {
-      ...d,
       country: country,
-      happiness_score: parseFloat(d.happiness_score),
-      gdp_per_capita: parseFloat(d.gdp_per_capita),
-      social_support: parseFloat(d.social_support),
-      healthy_life_expectancy: parseFloat(d.healthy_life_expectancy)
+      happiness_score: avgHappinessScore,
+      gdp_per_capita: avgGdpPerCapita,
+      social_support: avgSocialSupport,
+      healthy_life_expectancy: avgHealthyLifeExpectancy
     };
   });
+
+  return averagedData;
 }
