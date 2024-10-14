@@ -74,7 +74,7 @@
 }
 
 .tbd-text {
-  font-size: 40px;
+  font-size: 7vh;
   color: black;
   text-align: center; /* Centers the text horizontally */
   line-height: 100%; /* Adjust the line-height to center the text vertically */
