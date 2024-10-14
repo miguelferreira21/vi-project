@@ -16,7 +16,7 @@ function createRooftopMatrix(data, containerId) {
         .attr("width", width + margin.left + margin.right)
         .attr("height", 1.2 * height + margin.top + margin.bottom)
         .append("g")
-        .attr("transform", `translate(${margin.left},${margin.top})`);
+        .attr("transform", `translate(${margin.left},${margin.top })`);
 
     // Create the color scale for the matrix cells
     var colorScale = d3.scaleLinear()
@@ -56,8 +56,14 @@ function createRooftopMatrix(data, containerId) {
         ).filter(d => d.value !== null);
 
         // Separate layers: One for cells, one for symbols
-        const cellGroup = svg.append("g").attr("class", "cell-group");
-        const symbolGroup = svg.append("g").attr("class", "symbol-group");
+        let cellGroup = svg.select(".cell-group");
+        if (cellGroup.empty()) {
+            cellGroup = svg.append("g").attr("class", "cell-group");
+        }
+        let symbolGroup = svg.select(".symbol-group");
+        if (symbolGroup.empty()) {
+            symbolGroup = svg.append("g").attr("class", "symbol-group");
+        }
 
         // Create/update the matrix cells
         const cells = cellGroup.selectAll("rect")
@@ -176,15 +182,13 @@ function createRooftopMatrix(data, containerId) {
         .style("stroke", "black") // Line color
         .style("stroke-width", 1); // Line width
 
-    // Function to handle year range updates
-    function handleYearRangeUpdate(yearRange) {
-        const { startYear, endYear } = yearRange;
-        const filteredData = data.filter(d => d.year >= startYear && d.year <= endYear);
-        updateMatrix(filteredData);
+    // Function to handle data updates
+    function handleDataUpdate(updatedData) {
+        updateMatrix(updatedData);
     }
 
-    // Subscribe to year range updates
-    LinkedCharts.subscribe('yearRange', handleYearRangeUpdate);
+    // Subscribe to data updates
+    LinkedCharts.subscribe('dataUpdate', handleDataUpdate);
 }
 
 // Function to calculate correlation, ignoring missing values
