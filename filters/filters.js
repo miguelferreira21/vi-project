@@ -13,6 +13,8 @@ function createFilters(data, containerId) {
     data.forEach(d => {
         d.temperature = +d.temperature;
         d.fertility_rate = +d.fertility_rate;
+        d.happiness_score = +d.happiness_score;
+        d.year = +d.year;
     });
 
     // Get unique regions and add 'All' at the beginning
@@ -25,9 +27,9 @@ function createFilters(data, containerId) {
 
     // Data for three bars
     const filtersData = [
-        { id: 1, value: 50, title: 'Top happiest countries (%)', start: 0, finish: 100},
-        { id: 2, value: 50, title: 'Temperature (°C)', start: minTemp, finish: maxTemp},
-        { id: 3, value: 50, title: 'Fertility rate', start : minFert, finish: maxFert }
+        { id: 1, value: 100, title: 'Top happiest countries (%)', start: 0, finish: 100},
+        { id: 2, value: maxTemp, title: 'Temperature (°C)', start: minTemp, finish: maxTemp},
+        { id: 3, value: maxFert, title: 'Fertility rate', start : minFert, finish: maxFert }
     ];
 
     // Select the container
@@ -66,14 +68,33 @@ function createFilters(data, containerId) {
 
     function filterData() {
         const selectedRegion = regions[currentRegionIndex];
+        let tempFilteredData = selectedRegion === 'All' ? data : data.filter(d => d.region === selectedRegion);
 
-        if (selectedRegion === 'All') {
-            filteredData = data;
-        } else {
-            filteredData = data.filter(d => d.region === selectedRegion);
-        }
+        // Apply other filters
+        filtersData.forEach(filter => {
+            if (filter.id === 1) {
+                // Top happiest countries filter
+                const years = [...new Set(tempFilteredData.map(d => d.year))];
+                tempFilteredData = years.flatMap(year => {
+                    const yearData = tempFilteredData.filter(d => d.year === year);
+                    const sortedYearData = yearData.sort((a, b) => b.happiness_score - a.happiness_score);
+                    const topCount = Math.ceil(sortedYearData.length * (filter.value / 100));
+                    return sortedYearData.slice(0, topCount);
+                });
+            } else if (filter.id === 2) {
+                // Temperature filter
+                tempFilteredData = tempFilteredData.filter(d => 
+                    (filter.value === filter.finish) ? 
+                    (d.temperature <= filter.value) : 
+                    (d.temperature <= filter.value && d.temperature !== -999.0)
+                );
+            } else if (filter.id === 3) {
+                // Fertility rate filter
+                tempFilteredData = tempFilteredData.filter(d => d.fertility_rate <= filter.value);
+            }
+        });
 
-        // Update the charts with the new filtered data
+        filteredData = tempFilteredData;
         LinkedCharts.publish('dataUpdate', filteredData);
     }
 
@@ -106,18 +127,18 @@ function createFilters(data, containerId) {
             .attr('stroke', '#ddd')
             .attr('stroke-width', lineThickness);
 
-        // Add labels for 0 and 100
+        // Add labels for start and finish
         g.append('text')
-            .attr('x', width * 0.2 - 10) // A bit to the left of the start of the line
-            .attr('y', 5)   // Adjust slightly below the line
+            .attr('x', width * 0.2 - 10)
+            .attr('y', 5)
             .attr('text-anchor', 'end')
             .attr('font-size', '12px')
             .attr('fill', '#333')
             .text(filter.start);
 
         g.append('text')
-            .attr('x', width * 0.8 + 10) // A bit to the right of the end of the line
-            .attr('y', 5)   // Adjust slightly below the line
+            .attr('x', width * 0.8 + 10)
+            .attr('y', 5)
             .attr('text-anchor', 'start')
             .attr('font-size', '12px')
             .attr('fill', '#333')
@@ -133,35 +154,22 @@ function createFilters(data, containerId) {
             .style("border-radius", "5px")
             .style("pointer-events", "none");
 
-
         // Calculate the scale for mapping slider position to values
         const scale = d3.scaleLinear()
-        .domain([0, 100])
-        .range([filter.start, filter.finish]);
-
-        // Set initial value to the middle of the range
-        filter.value = filter.finish;
+            .domain([width * 0.2, width * 0.8])
+            .range([filter.start, filter.finish]);
 
         // Create a drag behavior for the slider
         const drag = d3.drag()
             .on('drag', (event) => {
-                let newValue = Math.max(0, Math.min(100, (event.x / width) * 100));
-                filter.value = scale(newValue);
-
-                const lineStart = width * 0.2; // Starting position of the line
-                const lineEnd = width * 0.8; // Ending position of the line
-
-                let newCx = Math.max(lineStart, Math.min(lineEnd, event.x));
+                let newCx = Math.max(width * 0.2, Math.min(width * 0.8, event.x));
+                filter.value = scale(newCx);
 
                 // Update the slider position
                 sliderFilter.attr('cx', newCx);
 
-                const valueRange = filter.finish - filter.start;
-                const scaledValue = filter.start + (newCx - lineStart) * (valueRange / (lineEnd - lineStart));
-                filter.value = scaledValue;
-
                 // Update the tooltip text and position during drag
-                let filterValue = Math.round(filter.value * 100) / 100
+                let filterValue = Math.round(filter.value * 100) / 100;
 
                 d3.select('#filter_tooltip')
                     .text(`Value: ${filterValue}`)
@@ -169,27 +177,8 @@ function createFilters(data, containerId) {
                     .style('top', `${event.sourceEvent.clientY - 20}px`);
 
                 // Update data
-                if (filter.id == 1) {
-                    const sortedData = data.sort((a, b) => +b.happiness_score - +a.happiness_score);
-                    // Calculate the index for the top X% (percentage) of happiness scores
-                    const topPercentIndex = Math.ceil(sortedData.length * (filterValue / 100)) - 1;
-                    // Get the threshold happiness score for the specified percentage
-                    const thresholdScore = +sortedData[topPercentIndex].happiness_score;
-                    // Filter the data to include only entries with happiness scores above or equal to the threshold
-                    filteredData = sortedData.filter(d => +d.happiness_score >= thresholdScore);
-                    LinkedCharts.publish('dataUpdate', filteredData);
-                } else if (filter.id == 2) {
-                    if (filterValue == filter.finish) {
-                        filteredData = data.filter(d => +d.temperature <= filterValue);
-                    } else {
-                        filteredData = data.filter(d => +d.temperature <= filterValue && +d.temperature !== -999.0)
-                    }
-                    LinkedCharts.publish('dataUpdate', filteredData);
-                } else if (filter.id == 3) {
-                    filteredData = data.filter(d => +d.fertility_rate <= filterValue)
-                    LinkedCharts.publish('dataUpdate', filteredData);
-                }
-            })
+                filterData();
+            });
 
         // Create the slider circle
         const sliderFilter = g.append('circle')
@@ -199,9 +188,12 @@ function createFilters(data, containerId) {
             .attr('fill', '#333')
             .style('cursor', 'pointer')
             .call(drag)
-            .on('mouseover', (event) => handleMouseOverFilter(event, filter.value)) // Pass the value of the slider
+            .on('mouseover', (event) => handleMouseOverFilter(event, filter.value))
             .on('mouseout', handleMouseOutFilter);
     });
+
+    // Initial data filter
+    filterData();
 }
 
 function handleMouseOverFilter(event, d) {
