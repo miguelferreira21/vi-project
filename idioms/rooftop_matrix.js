@@ -16,7 +16,7 @@ function createRooftopMatrix(data, containerId) {
         .attr("width", width + margin.left + margin.right)
         .attr("height", 1.2 * height + margin.top + margin.bottom)
         .append("g")
-        .attr("transform", `translate(${margin.left},${margin.top })`);
+        .attr("transform", `translate(${margin.left},${margin.top})`);
 
     // Create the color scale for the matrix cells
     var colorScale = d3.scaleLinear()
@@ -34,8 +34,15 @@ function createRooftopMatrix(data, containerId) {
         .style("pointer-events", "none")
         .style("opacity", 0);  // Initially hidden
 
+    // Keep track of the current year range and filtered data
+    let currentYearRange = { startYear: d3.min(data, d => d.year), endYear: d3.max(data, d => d.year) };
+    let currentFilteredData = data;
+
     // Function to create/update the matrix cells
-    function updateMatrix(filteredData) {
+    function updateMatrix() {
+        // Apply both year range and other filters
+        const filteredData = currentFilteredData.filter(d => d.year >= currentYearRange.startYear && d.year <= currentYearRange.endYear);
+
         // Recalculate correlations
         correlations = [];
         for (var i = 0; i < numericalColumns.length; i++) {
@@ -129,7 +136,7 @@ function createRooftopMatrix(data, containerId) {
     }
 
     // Initial update with all data
-    updateMatrix(data);
+    updateMatrix();
 
     // Create a scale for positioning the labels
     var yScale = d3.scaleBand()
@@ -182,10 +189,20 @@ function createRooftopMatrix(data, containerId) {
         .style("stroke", "black") // Line color
         .style("stroke-width", 1); // Line width
 
+    // Function to handle year range updates
+    function handleYearRangeUpdate(yearRange) {
+        currentYearRange = yearRange;
+        updateMatrix();
+    }
+
     // Function to handle data updates
     function handleDataUpdate(updatedData) {
-        updateMatrix(updatedData);
+        currentFilteredData = updatedData;
+        updateMatrix();
     }
+
+    // Subscribe to year range updates
+    LinkedCharts.subscribe('yearRange', handleYearRangeUpdate);
 
     // Subscribe to data updates
     LinkedCharts.subscribe('dataUpdate', handleDataUpdate);
