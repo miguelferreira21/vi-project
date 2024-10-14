@@ -69,8 +69,6 @@ function createRooftopMatrix(data, containerId) {
             .style("stroke", "black")
             .style("stroke-width", 1)
             .merge(cells)
-            .transition()
-            .duration(500)
             .style("fill", d => colorScale(d.value));
 
         cells.exit().remove();
