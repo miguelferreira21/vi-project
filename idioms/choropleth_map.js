@@ -162,7 +162,7 @@ function createStaticLegend(initialData) {
 
   const legend = svg.append("g")
     .attr("class", "choropleth-legend")
-    .attr("transform", `translate(${svg.attr("width") - 60}, ${svg.attr("height") - 220})`);
+    .attr("transform", `translate(${svg.attr("width") - 150}, ${svg.attr("height") - 220})`);
 
   const legendScale = d3.scaleLinear()
     .domain(extent)
