@@ -219,14 +219,21 @@ function showTooltip(event, d, countryData) {
     .style("border-radius", "5px")
     .style("padding", "10px");
 
+  // Check for -999 values and set to "N/A" if true
+  const fertilityRate = countryData.fertility_rate === -999 ? "N/A" : countryData.fertility_rate.toFixed(2);
+  const temperature = countryData.temperature === -999 ? "N/A" : countryData.temperature.toFixed(2);
+
+  // Construct temperature display string
+  const temperatureDisplay = countryData.temperature === -999 ? temperature : `${temperature} ºC`;
+  
   tooltip.html(`
     <strong>${d.properties.name}</strong><br>
     Happiness Score: ${countryData.happiness_score.toFixed(2)}<br>
     GDP per capita: ${countryData.gdp_per_capita.toFixed(2)} GK$<br>
     Social support: ${countryData.social_support.toFixed(2)}<br>
     Healthy life expectancy: ${countryData.healthy_life_expectancy.toFixed(2)}<br>
-    Temperature: ${countryData.temperature.toFixed(2)} ºC<br>
-    Fertility Rate: ${countryData.fertility_rate.toFixed(2)}
+    Temperature: ${temperatureDisplay}<br>
+    Fertility Rate: ${fertilityRate}
   `)
     .style("left", (event.pageX + 10) + "px")
     .style("top", (event.pageY - 28) + "px");
