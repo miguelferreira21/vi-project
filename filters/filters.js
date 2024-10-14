@@ -152,7 +152,7 @@ function createFilters(data, containerId) {
                 // Update the tooltip text and position during drag
                 let filterValue = Math.round(filter.value * 100) / 100
 
-                tooltip.text(`Value: ${filterValue}`)
+                d3.select('#tooltip').text(`Value: ${filterValue}`)
                 .style('left', `${newCx + margin.left + 10}px`)
                 .style('top', `${event.sourceEvent.clientY - 20}px`);
 
