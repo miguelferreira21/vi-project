@@ -4,7 +4,7 @@ let regions = [];
 
 function createFilters(data, containerId) {
     // Set up the dimensions
-    const margin = { top: 20, right: 20, bottom: 50, left: 80 };
+    const margin = { top: 20, right: 0, bottom: 50, left: 0 };
     const width = window.innerWidth/2;
     const height = window.innerHeight / 8.5;
     const lineThickness = 2;
@@ -123,6 +123,17 @@ function createFilters(data, containerId) {
             .attr('fill', '#333')
             .text(filter.finish);
 
+        // Create a tooltip div
+        d3.select("body").append("div")
+            .attr("id", "filter_tooltip")
+            .style("opacity", 0)
+            .style("position", "absolute")
+            .style("background", "lightsteelblue")
+            .style("padding", "5px")
+            .style("border-radius", "5px")
+            .style("pointer-events", "none");
+
+
         // Calculate the scale for mapping slider position to values
         const scale = d3.scaleLinear()
         .domain([0, 100])
@@ -143,7 +154,7 @@ function createFilters(data, containerId) {
                 let newCx = Math.max(lineStart, Math.min(lineEnd, event.x));
 
                 // Update the slider position
-                slider.attr('cx', newCx);
+                sliderFilter.attr('cx', newCx);
 
                 const valueRange = filter.finish - filter.start;
                 const scaledValue = filter.start + (newCx - lineStart) * (valueRange / (lineEnd - lineStart));
@@ -152,9 +163,10 @@ function createFilters(data, containerId) {
                 // Update the tooltip text and position during drag
                 let filterValue = Math.round(filter.value * 100) / 100
 
-                d3.select('#tooltip').text(`Value: ${filterValue}`)
-                .style('left', `${newCx + margin.left + 10}px`)
-                .style('top', `${event.sourceEvent.clientY - 20}px`);
+                d3.select('#filter_tooltip')
+                    .text(`Value: ${filterValue}`)
+                    .style('left', `${newCx + margin.left + 10}px`)
+                    .style('top', `${event.sourceEvent.clientY - 20}px`);
 
                 // Update data
                 if (filter.id == 1) {
@@ -176,27 +188,27 @@ function createFilters(data, containerId) {
             })
 
         // Create the slider circle
-        const slider = g.append('circle')
+        const sliderFilter = g.append('circle')
             .attr('cx', width * 0.8)
             .attr('cy', 0)
             .attr('r', 6)
             .attr('fill', '#333')
             .style('cursor', 'pointer')
             .call(drag)
-            .on('mouseover', (event) => handleMouseOver(event, filter.value)) // Pass the value of the slider
-            .on('mouseout', handleMouseOut);
+            .on('mouseover', (event) => handleMouseOverFilter(event, filter.value)) // Pass the value of the slider
+            .on('mouseout', handleMouseOutFilter);
     });
 }
 
-function handleMouseOver(event, d) {
-    d3.select('#tooltip')
-    .style("opacity", 1)
-    .html(`Value: ${Math.round(d * 100) / 100}`)
-    .style("left", (event.pageX + 5) + "px")
-    .style("top", (event.pageY - 28) + "px");
+function handleMouseOverFilter(event, d) {
+    d3.select('#filter_tooltip')
+        .style("opacity", 1)
+        .html(`Value: ${Math.round(d * 100) / 100}`)
+        .style("left", (event.pageX + 5) + "px")
+        .style("top", (event.pageY - 28) + "px");
 }
 
-function handleMouseOut() {
-    d3.select("#tooltip")
+function handleMouseOutFilter() {
+    d3.select("#filter_tooltip")
         .style("opacity", 0);
 }
