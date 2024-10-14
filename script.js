@@ -6,7 +6,7 @@ function init() {
     
     createLineChart(data, ".LineChart");
     createChoroplethMap(data, ".Choropleth");
-    //createRooftop_Matrix(data, ".Rooftop_Matrix");
+    createRooftopMatrix(data, ".Rooftop_Matrix");
     //createParallel_coordinates(data, ".Parallel_coordinates");
     
     // Set up data binding

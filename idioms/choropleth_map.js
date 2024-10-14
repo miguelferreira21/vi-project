@@ -142,7 +142,7 @@ function updateChoroplethMap(data) {
   mapGroup.selectAll("path")
     .on("mouseover", function(event, d) {
       if (!d || !d.properties) return; // Skip if data is invalid
-      d3.select(this).attr("stroke", "#000").attr("stroke-width", 0.40);
+      d3.select(this).raise().attr("stroke", "#000").attr("stroke-width", 0.40);
       const countryData = processedData.find(item => item.country === d.properties.name);
       if (countryData) {
         showTooltip(event, d, countryData);
