@@ -79,7 +79,8 @@ function createLineChart(data, containerId) {
         .attr('class', 'range-display')
         .attr('text-anchor', 'middle')
         .attr('transform', `translate(${width/2}, 40)`)
-        .style('font-size', '14px')
+        .style("font-family", "Arial")
+        .style("font-size", "14px")
         .style('font-weight', 'bold');
 
     // Create circles for data points
@@ -220,6 +221,8 @@ function handleMouseOver(event, d) {
     d3.select("#tooltip")
         .style("opacity", 1)
         .html(`Year: ${d.year}<br>Happiness Score: ${d.happiness_score.toFixed(3)}`)
+        .style("font-family", "Arial")
+        .style("font-size", "14px")
         .style("left", (event.pageX + 5) + "px")
         .style("top", (event.pageY - 28) + "px");
 }

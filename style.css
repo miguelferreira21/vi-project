@@ -74,6 +74,7 @@
 }
 
 .tbd-text {
+  font-family: Arial, sans-serif;
   font-size: 7vh;
   color: black;
   text-align: center; /* Centers the text horizontally */

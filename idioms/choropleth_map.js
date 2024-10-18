@@ -205,7 +205,8 @@ function createStaticLegend(initialData) {
     .attr("x", 10)
     .attr("y", -10)
     .attr("text-anchor", "middle")
-    .style("font-size", "12px")
+    .style("font-family", "Arial")
+    .style("font-size", "14px")
     .text("Happiness Score");
 }
 
@@ -213,11 +214,13 @@ function showTooltip(event, d, countryData) {
   const tooltip = d3.select("body").append("div")
     .attr("class", "tooltip")
     .style("position", "absolute")
-    .style("background-color", "white")
+    .style("background-color", "lightsteelblue")
     .style("border", "solid")
     .style("border-width", "1px")
     .style("border-radius", "5px")
-    .style("padding", "10px");
+    .style("font-family", "Arial")
+    .style("font-size", "14px")
+    .style("padding", "5px");
 
   // Check for -999 values and set to "N/A" if true
   const fertilityRate = countryData.fertility_rate === -999 ? "N/A" : countryData.fertility_rate.toFixed(2);

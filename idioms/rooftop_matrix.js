@@ -27,11 +27,12 @@ function createRooftopMatrix(data, containerId) {
     var tooltip = d3.select(containerId)
         .append("div")
         .style("position", "absolute")
-        .style("background", "#f9f9f9")
-        .style("border", "1px solid #d3d3d3")
-        .style("padding", "8px")
+        .style("background", "lightsteelblue")
+        .style("padding", "5px")
         .style("border-radius", "5px")
         .style("pointer-events", "none")
+        .style("font-family", "Arial")
+        .style("font-size", "14px")
         .style("opacity", 0);  // Initially hidden
 
     // Keep track of the current year range and filtered data

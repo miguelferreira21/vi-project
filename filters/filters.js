@@ -53,6 +53,7 @@ function createFilters(data, containerId) {
     const regionText = regionFilter.append('span')
         .text(regions[currentRegionIndex])
         .style('font-size', '16px')
+        .style("font-family", "Arial")
         .style('font-weight', 'bold');
 
     regionFilter.append('button')
@@ -111,7 +112,7 @@ function createFilters(data, containerId) {
             .attr('y', margin.top)
             .attr('text-anchor', 'middle')
             .attr('font-size', '14px')
-            .attr('fill', '#333')
+            .style("font-family", "Arial")
             .text(filter.title);
 
         // Create a group element to hold the bar and slider
@@ -132,16 +133,16 @@ function createFilters(data, containerId) {
             .attr('x', width * 0.2 - 10)
             .attr('y', 5)
             .attr('text-anchor', 'end')
-            .attr('font-size', '12px')
-            .attr('fill', '#333')
+            .style("font-family", "Arial")
+            .style("font-size", "14px")
             .text(filter.start);
 
         g.append('text')
             .attr('x', width * 0.8 + 10)
             .attr('y', 5)
             .attr('text-anchor', 'start')
-            .attr('font-size', '12px')
-            .attr('fill', '#333')
+            .style("font-family", "Arial")
+            .style("font-size", "14px")
             .text(filter.finish);
 
         // Create a tooltip div
@@ -151,6 +152,8 @@ function createFilters(data, containerId) {
             .style("position", "absolute")
             .style("background", "lightsteelblue")
             .style("padding", "5px")
+            .style("font-family", "Arial")
+            .style("font-size", "14px")
             .style("border-radius", "5px")
             .style("pointer-events", "none");
 
