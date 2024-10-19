@@ -4,9 +4,8 @@ let currentData, initialExtent;
 function createChoroplethMap(data, containerId) {
   currentData = data;
   // Set up dimensions
-  const margin = { top: 20, right: 20, bottom: 50, left: 80 };
-  const width = window.innerWidth/2;
-  const height = 3*(window.innerHeight/7);
+  const width = d3.select(containerId).node().clientWidth*0.995;
+  const height = d3.select(containerId).node().clientHeight*4.65;
 
   // Create SVG
   svg = d3.select(containerId)
@@ -15,8 +14,7 @@ function createChoroplethMap(data, containerId) {
     .attr("height", height);
 
   // Create a group for the map and transformations
-  mapGroup = svg.append("g")
-    .attr("transform", `translate(${margin.left},${margin.top})`);
+  mapGroup = svg.append("g");
 
   // Create a color scale based on initial data
   initialExtent = d3.extent(data, d => d.happiness_score);
@@ -45,8 +43,8 @@ function createChoroplethMap(data, containerId) {
 
     // Set initial zoom and offset
     const initialZoomFactor = 1.60;
-    const initialXOffset = 350;
-    const initialYOffset = 23;
+    const initialXOffset = width*0.35;
+    const initialYOffset = height*0.05;
 
     // Calculate the initial transform
     const initialTransform = d3.zoomIdentity
@@ -79,7 +77,7 @@ function createChoroplethMap(data, containerId) {
     LinkedCharts.subscribe('dataUpdate', handleDataUpdate);
 
     // Create static legend based on initial data
-    createStaticLegend(currentData);
+    createStaticLegend(currentData, width, height);
 
     // Initial update
     updateChoroplethMap(currentData);
@@ -154,15 +152,15 @@ function updateChoroplethMap(data) {
     });
 }
 
-function createStaticLegend(initialData) {
+function createStaticLegend(initialData, width, height) {
   const extent = d3.extent(initialData, d => d.happiness_score);
   
-  const legendWidth = 20;
-  const legendHeight = 180;
+  const legendWidth = width*0.025;
+  const legendHeight = height*0.55;
 
   const legend = svg.append("g")
     .attr("class", "choropleth-legend")
-    .attr("transform", `translate(${svg.attr("width") - 150}, ${svg.attr("height") - 220})`);
+    .attr("transform", `translate(${width*0.85}, ${height*0.35})`);
 
   const legendScale = d3.scaleLinear()
     .domain(extent)
@@ -198,15 +196,16 @@ function createStaticLegend(initialData) {
   // Add axis to legend
   legend.append("g")
     .attr("transform", `translate(${legendWidth}, 0)`)
+    .style("font-size", height * 0.03)
     .call(legendAxis);
 
   // Add title to legend
   legend.append("text")
-    .attr("x", 10)
-    .attr("y", -10)
+    .attr("x", width*0.01)
+    .attr("y", -height*0.05)
     .attr("text-anchor", "middle")
     .style("font-family", "Arial")
-    .style("font-size", "14px")
+    .style("font-size", height*0.04)
     .text("Happiness Score");
 }
 
