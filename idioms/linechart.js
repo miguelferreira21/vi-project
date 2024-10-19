@@ -12,24 +12,33 @@ function createLineChart(data, containerId) {
 
     averageArray = Array.from(averagePerYear, ([year, happiness_score]) => ({ year, happiness_score }));
 
-    const margin = {top: 50, right: 10, bottom: 50, left: -10};
-    const width = window.innerWidth / 2;
-    const height = window.innerHeight / 8.5;
+    const width = d3.select(containerId).node().clientWidth*0.995;
+    const height = d3.select(containerId).node().clientHeight*6;
 
     lineChartSvg = d3.select(containerId)
         .append("svg")
-        .attr("width", width + margin.left + margin.right)
-        .attr("height", height + margin.top + margin.bottom)
-        .append("g")
-        .attr("transform", `translate(${margin.left},${margin.top})`);
+        .attr("width", width)
+        .attr("height", height)
+        .append("g");
+
+    // Add title with scalable font size
+    lineChartSvg.append("text")
+        .attr("x", width / 2)
+        .attr("y", height * 0.2)  // Position it near the top
+        .attr("text-anchor", "middle")
+        .attr("font-family", "Arial")
+        .attr("font-size", height * 0.15) // Use the calculated font size
+        .attr("font-weight", "bold")
+        .attr("fill", "black")  // Title color
+        .text("Average Happiness Score Over Years");  // Your title text
 
     x = d3.scaleLinear()
         .domain(d3.extent(averageArray, d => d.year))
-        .range([50, width - 50]);
+        .range([width*0.05, width*0.95]);  // Full width without margins
 
     y = d3.scaleLinear()
-        .domain([d3.min(averageArray, d => d.happiness_score) - 0.1, d3.max(averageArray, d => d.happiness_score) + 0.1])
-        .range([height - 20, 20]);
+        .domain([d3.min(averageArray, d => d.happiness_score), d3.max(averageArray, d => d.happiness_score) + 0.1])
+        .range([height*0.80, height*0.2]);  // Full height without margins
 
     line = d3.line()
         .x(d => x(d.year))
@@ -37,7 +46,7 @@ function createLineChart(data, containerId) {
 
     // Create a group for the chart
     chartGroup = lineChartSvg.append("g")
-        .attr("transform", `translate(0, 30)`);
+        .attr("class", "chart-group");
 
     // Draw the line
     chartGroup.append("path")
@@ -52,12 +61,11 @@ function createLineChart(data, containerId) {
 
     // Create a group for the slider
     sliderGroup = lineChartSvg.append("g")
-        .attr("class", "slider")
-        .attr("transform", `translate(0, ${height + 10})`);
+        .attr("class", "slider")  // Position it at the bottom of the chart
+        .attr('transform', `translate(0, ${height*0.75})`);
 
     slider = d3.sliderBottom(x)
         .step(1)
-        .ticks(8)
         .default([minYear, maxYear])
         .fill('#2196f3')
         .handle(d3.symbol().type(d3.symbolCircle).size(200)())
@@ -78,10 +86,10 @@ function createLineChart(data, containerId) {
     rangeDisplay = sliderGroup.append('text')
         .attr('class', 'range-display')
         .attr('text-anchor', 'middle')
-        .attr('transform', `translate(${width/2}, 40)`)
+        .attr('transform', `translate(${width / 2}, ${height*0.15})`)  // Center the range display
         .style("font-family", "Arial")
-        .style("font-size", "14px")
-        .style('font-weight', 'bold');
+        .style("font-size", height * 0.1)
+        .style("font-weight", "bold");
 
     // Create circles for data points
     chartGroup.selectAll(".dot")
@@ -112,6 +120,7 @@ function createLineChart(data, containerId) {
     // Subscribe to updates
     LinkedCharts.subscribe('dataUpdate', updateLineChart);
 }
+
 
 function updateLineChart(data) {
     // Recalculate averageArray with new data
@@ -262,11 +271,9 @@ function styleSlider() {
         .attr('stroke-width', 40)
         .attr('cursor', 'crosshair');
 
-    sliderGroup.selectAll('.tick text')
-        .attr('dy', '2em')
-        .style('font-size', '12px')
-        .style('color', '#666');
-
+    // Remove ticks and their styles
+    sliderGroup.selectAll('.tick').remove();
+    
     // Remove number display from buttons
     sliderGroup.selectAll('.parameter-value text').remove();
 
@@ -282,3 +289,4 @@ function styleSlider() {
     sliderGroup.selectAll('.track, .track-inset, .track-overlay')
         .attr('transform', 'scale(1, 0.8)');
 }
+

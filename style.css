@@ -1,14 +1,14 @@
 .container {
   display: grid;
-  grid-template-columns: 1fr 1fr; /* Two equal-width columns */
-  grid-template-rows: 1fr 3fr 3fr;  /* Two rows, automatically sized */
+  grid-template-columns: 50% 50%; /* Two equal-width columns */
+  grid-template-rows: 20% 40% 40%;  /* Three rows, automatically sized */
   gap: 5px; /* Adds space between grid items */
   grid-template-areas:
     "LineChart TBD"
     "Choropleth Rooftop_Matrix"
     "Parallel_coordinates Filters";
-  max-height: 100vh;
-  max-width: 100vw;
+  max-height: 100%;
+  max-width: 100%;
 }
 
 .Choropleth {
