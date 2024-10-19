@@ -6,7 +6,7 @@
   grid-template-areas:
     "LineChart TBD"
     "Choropleth Rooftop_Matrix"
-    "Parallel_Coordinates Filters"; /* Defines layout positions */
+    "Parallel_coordinates Filters";
   max-height: 100vh;
   max-width: 100vw;
 }
@@ -19,13 +19,12 @@
   grid-area: Rooftop_Matrix;
 }
 
-.Parallel_Coordinates {
-  grid-area: Parallel_Coordinates;
+.Parallel_coordinates {
+  grid-area: Parallel_coordinates;
 }
 
 .LineChart {
   grid-area: LineChart;
-
 }
 
 .Filters {
@@ -39,15 +38,6 @@
 .placeholder1 {
   background-image: url('/placeholders/rooftop_1.png');
   background-size: 75%; 
-  background-repeat: no-repeat;
-  background-position: center;
-  height: 100%;
-  width: 100%;
-}
-
-.placeholder2 {
-  background-image: url('/placeholders/parallel_coordinates.png');
-  background-size: 60%;
   background-repeat: no-repeat;
   background-position: center;
   height: 100%;
@@ -69,7 +59,7 @@
   width: 100%;
 }
 
-.Choropleth, .Rooftop_Matrix, .Parallel_Coordinates, .LineChart, .Filters, .TBD {
+.Choropleth, .Rooftop_Matrix, .Parallel_coordinates, .LineChart, .Filters, .TBD {
   border: 1px solid black;
 }
 
@@ -83,4 +73,25 @@
   display: flex;
   justify-content: center;
   align-items: center;
+}
+
+/* New styles for the parallel coordinates chart */
+.Parallel_coordinates svg {
+  width: 100%;
+  height: 100%;
+}
+
+.Parallel_coordinates .axis text {
+  font-size: 10px;
+}
+
+.Parallel_coordinates .axis line,
+.Parallel_coordinates .axis path {
+  stroke: #000;
+}
+
+.Parallel_coordinates .line {
+  fill: none;
+  stroke-width: 1.5px;
+  stroke-opacity: 0.4;
 }

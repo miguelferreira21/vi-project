@@ -7,7 +7,7 @@ function init() {
     createLineChart(data, ".LineChart");
     createChoroplethMap(data, ".Choropleth");
     createRooftopMatrix(data, ".Rooftop_Matrix");
-    //createParallel_coordinates(data, ".Parallel_coordinates");
+    createParallelCoordinates(data, ".Parallel_coordinates");
 
     // Filters
     createFilters(data, ".Filters")
@@ -36,35 +36,6 @@ function updateData() {
   // Use the LinkedCharts system to update all charts
   LinkedCharts.publish('dataUpdate', globalData);
 }*/
-
-// Uncomment and update these functions when implementing them
-/*
-function createRooftop_Matrix(data, containerId) {
-  // Implementation of createRooftop_Matrix
-  // ...
-
-  // Subscribe to updates
-  LinkedCharts.subscribe('rooftop_matrix', updateRooftop_Matrix);
-}
-
-function updateRooftop_Matrix(data) {
-  // Implementation of updateRooftop_Matrix
-  // ...
-}
-
-function createParallel_coordinates(data, containerId) {
-  // Implementation of createParallel_coordinates
-  // ...
-
-  // Subscribe to updates
-  LinkedCharts.subscribe('parallel_coordinates', updateParallel_coordinates);
-}
-
-function updateParallel_coordinates(data) {
-  // Implementation of updateParallel_coordinates
-  // ...
-}
-*/
 
 // Call init function when the page loads
 window.onload = init;
