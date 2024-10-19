@@ -66,8 +66,18 @@ function createRooftopMatrix(data, containerId) {
             row.map((value, j) => ({ value, i, j }))
         ).filter(d => d.value !== null);
 
-        // Create/update the matrix cells
-        const cells = matrixGroup.selectAll("rect")
+        // Separate layers: One for cells, one for symbols
+        let cellGroup = svg.select(".cell-group");
+        if (cellGroup.empty()) {
+            cellGroup = svg.append("g").attr("class", "cell-group");
+        }
+        let symbolGroup = svg.select(".symbol-group");
+        if (symbolGroup.empty()) {
+            symbolGroup = svg.append("g").attr("class", "symbol-group");
+        }
+
+        // Create/                              update the matrix cells
+        const cells = cellGroup.selectAll("rect")
             .data(flatCorrelations, d => `${d.i}-${d.j}`);
 
         cells.enter()
@@ -76,7 +86,7 @@ function createRooftopMatrix(data, containerId) {
             .attr("y", d => ((d.i + d.j) * cellSize / Math.SQRT2))
             .attr("width", cellSize)
             .attr("height", cellSize)
-            .attr("transform", d => `rotate(45 ${(d.j - d.i) * cellSize / Math.SQRT2}, ${(d.i + d.j) * cellSize / Math.SQRT2})`)
+            .attr("transform", d => `rotate(45 ${(d.j - d.i) * cellSize / Math.SQRT2}, ${(d.i + d.j) * cellSize / Math.SQRT2}) translate(${Math.sqrt(((width*0.3)**2)/2) + Math.sqrt(((height*0.04)**2)/2)}, ${-Math.sqrt(((width*0.3)**2)/2) + Math.sqrt(((height*0.04)**2)/2)})`) //Adjust cell positions here
             .style("stroke", "black")
             .style("stroke-width", 1)
             .merge(cells)
@@ -87,7 +97,7 @@ function createRooftopMatrix(data, containerId) {
         // Add/update symbols for strong correlations in a separate layer
         const strongCorrelations = flatCorrelations.filter(d => Math.abs(d.value) > 0.7);
 
-        const symbols = matrixGroup.selectAll("image")
+        const symbols = symbolGroup.selectAll("image")
             .data(strongCorrelations, d => `${d.i}-${d.j}`);
 
         symbols.enter()
@@ -95,6 +105,7 @@ function createRooftopMatrix(data, containerId) {
             .attr("xlink:href", "placeholders/icons8-cross.svg")
             .attr("x", d => ((d.j - d.i) * cellSize / Math.SQRT2) - cellSize / 2)  // Adjust position
             .attr("y", d => ((d.i + d.j) * cellSize / Math.SQRT2) + cellSize / 5)  // Adjust position
+            .attr("transform", `translate(${width*0.3}, ${height*0.04})`) //Adjust image positions here
             .attr("width", cellSize)   // Adjust size
             .attr("height", cellSize)  // Adjust size
             .style("pointer-events", "none")  // Allow hover events to pass through the image
@@ -104,7 +115,7 @@ function createRooftopMatrix(data, containerId) {
         symbols.exit().remove();
 
         // Handle hover interactions only on cells (not affecting symbols)
-        matrixGroup.selectAll("rect")
+        svg.selectAll("rect")
             .on("mouseover", function(event, d) {
                 // Highlight the cell (but do not raise it)
                 d3.select(this)
