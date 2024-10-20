@@ -227,6 +227,12 @@ function updateRangeDisplay(startYear, endYear) {
 }
 
 function handleMouseOver(event, d) {
+    d3.select(this)
+        .attr("r", 6)
+        .attr("stroke", "black")
+        .attr("stroke-width", 2)
+        .style("cursor", "pointer");
+
     d3.select("#tooltip")
         .style("opacity", 1)
         .html(`Year: ${d.year}<br>Happiness Score: ${d.happiness_score.toFixed(3)}`)
@@ -236,7 +242,13 @@ function handleMouseOver(event, d) {
         .style("top", (event.pageY - 28) + "px");
 }
 
-function handleMouseOut() {
+function handleMouseOut(event, d) {
+    d3.select(this)
+        .attr("r", d.year == selectedYear ? 6 : 4)
+        .attr("stroke", null)
+        .attr("stroke-width", null)
+        .style("cursor", "default");
+
     d3.select("#tooltip")
         .style("opacity", 0);
 }
@@ -289,4 +301,3 @@ function styleSlider() {
     sliderGroup.selectAll('.track, .track-inset, .track-overlay')
         .attr('transform', 'scale(1, 0.8)');
 }
-
