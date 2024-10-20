@@ -22,10 +22,10 @@ function createParallelCoordinates(initialData, containerId) {
     // Update keys to use display names
     const displayKeys = keys.map(getDisplayName);
 
-    const margin = { top: 70, right: 150, bottom: 30, left: 40 };
+    const margin = { top: 60, right: 150, bottom: 30, left: 12 };
     const container = d3.select(containerId);
     const containerWidth = container.node().getBoundingClientRect().width;
-    const containerHeight = container.node().getBoundingClientRect().height;
+    const containerHeight = container.node().getBoundingClientRect().height * 1.65;
     const width = containerWidth - margin.left - margin.right;
     const height = containerHeight - margin.top - margin.bottom;
 
