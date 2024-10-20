@@ -6,8 +6,9 @@ function createRooftopMatrix(data, containerId) {
     var correlations = [];
 
     const width = d3.select(containerId).node().clientWidth * 0.995;
-    const height = d3.select(containerId).node().clientHeight * 1.52;
-    const cellSize = Math.min(width*0.65, height*0.65) / numericalColumns.length;
+    const height = d3.select(containerId).node().clientHeight * 1.75;
+    const cellSize = Math.min(width*0.68, height*0.68) / numericalColumns.length;
+
 
 
     // Create the SVG element
@@ -41,6 +42,8 @@ function createRooftopMatrix(data, containerId) {
 
     // Create a group for the matrix
     const matrixGroup = svg.append("g").attr("class", "matrix-group");
+
+    addColorScaleLegend(svg, colorScale, width, height, cellSize);
 
     // Function to create/update the matrix cells
     function updateMatrix() {
@@ -86,7 +89,7 @@ function createRooftopMatrix(data, containerId) {
             .attr("y", d => ((d.i + d.j) * cellSize / Math.SQRT2))
             .attr("width", cellSize)
             .attr("height", cellSize)
-            .attr("transform", d => `rotate(45 ${(d.j - d.i) * cellSize / Math.SQRT2}, ${(d.i + d.j) * cellSize / Math.SQRT2}) translate(${Math.sqrt(((width*0.3)**2)/2) + Math.sqrt(((height*0.04)**2)/2)}, ${-Math.sqrt(((width*0.3)**2)/2) + Math.sqrt(((height*0.04)**2)/2)})`) //Adjust cell positions here
+            .attr("transform", d => `rotate(45 ${(d.j - d.i) * cellSize / Math.SQRT2}, ${(d.i + d.j) * cellSize / Math.SQRT2}) translate(${Math.sqrt(((width*0.3)**2)/2) + Math.sqrt(((height*0.022)**2)/2)}, ${-Math.sqrt(((width*0.3)**2)/2) + Math.sqrt(((height*0.022)**2)/2)})`) //Adjust cell positions here
             .style("stroke", "black")
             .style("stroke-width", 1)
             .merge(cells)
@@ -105,7 +108,7 @@ function createRooftopMatrix(data, containerId) {
             .attr("xlink:href", "placeholders/icons8-cross.svg")
             .attr("x", d => ((d.j - d.i) * cellSize / Math.SQRT2) - cellSize / 2)  // Adjust position
             .attr("y", d => ((d.i + d.j) * cellSize / Math.SQRT2) + cellSize / 5)  // Adjust position
-            .attr("transform", `translate(${width*0.3}, ${height*0.04})`) //Adjust image positions here
+            .attr("transform", `translate(${width*0.3}, ${height*0.022})`) //Adjust image positions here
             .attr("width", cellSize)   // Adjust size
             .attr("height", cellSize)  // Adjust size
             .style("pointer-events", "none")  // Allow hover events to pass through the image
@@ -151,7 +154,7 @@ function createRooftopMatrix(data, containerId) {
     // Add labels for the y-axis (left side attributes)
     const yAxisGroup = svg.append("g")
         .attr("class", "y axis")
-        .attr("transform", `translate(${width * 0.3}, ${height * 0.04})`); // Ensure y-axis is at the origin
+        .attr("transform", `translate(${width * 0.3}, ${height * 0.022})`); // Ensure y-axis is at the origin
 
     // Create y-axis with ticks only for labels
     const yAxis = d3.axisLeft(yScale)
@@ -159,7 +162,9 @@ function createRooftopMatrix(data, containerId) {
         .ticks(numericalColumns.length); // Set ticks according to the number of labels
 
     // Call the y-axis
-    yAxisGroup.call(yAxis);
+    yAxisGroup.call(yAxis)
+        .selectAll("text")
+        .style("font-size", height*0.04);
 
     // Remove the axis line itself
     yAxisGroup.select(".domain").remove(); // Remove the main axis line
@@ -170,7 +175,9 @@ function createRooftopMatrix(data, containerId) {
     // Calculate the maximum label width
     var maxLabelWidth = 0;
     var tempText = svg.append("text") // Create a temporary text element
-        .attr("visibility", "hidden"); // Hide it from the view
+        .attr("visibility", "hidden") // Hide it from the view
+        .style("font-size", height*0.06)   // Apply the same font size used for the actual labels
+        .style("font-family", "Arial");
 
     numericalColumns.forEach((label) => {
         tempText.text(formatLabel(label));
@@ -183,9 +190,9 @@ function createRooftopMatrix(data, containerId) {
     numericalColumns.forEach((_, index) => {
         svg.append("line")
             .attr("x1", width*0.3)
-            .attr("y1", yScale(index) + height*0.04) // Middle of the cell
+            .attr("y1", yScale(index) + height*0.022) // Middle of the cell
             .attr("x2", -maxLabelWidth * 0.75 + width*0.3) // Set line length based on max label width
-            .attr("y2", yScale(index) + height*0.04) // Same as y1
+            .attr("y2", yScale(index) + height*0.022) // Same as y1
             .style("stroke", "black") // Line color
             .style("stroke-width", 1); // Line width
     });
@@ -193,40 +200,40 @@ function createRooftopMatrix(data, containerId) {
     // Add an extra line below the last one
     svg.append("line")
         .attr("x1", width*0.3)
-        .attr("y1", yScale(numericalColumns.length - 1) + yScale.bandwidth() + height*0.04) // Position below the last tick
+        .attr("y1", yScale(numericalColumns.length - 1) + yScale.bandwidth() + height*0.022) // Position below the last tick
         .attr("x2", -maxLabelWidth*0.75 + width*0.3) // Set line length based on max label width
-        .attr("y2", yScale(numericalColumns.length - 1) + yScale.bandwidth() + height*0.04) // Same as y1
+        .attr("y2", yScale(numericalColumns.length - 1) + yScale.bandwidth() + height*0.022) // Same as y1
         .style("stroke", "black") // Line color
         .style("stroke-width", 1); // Line width
 
     // Add a vertical line from the first horizontal line to the last
     svg.append("line")
         .attr("x1", -maxLabelWidth*0.75 + width*0.3) // x-coordinate for vertical line (align with y-axis)
-        .attr("y1", yScale(0) + height*0.04) // Start at the first horizontal line
+        .attr("y1", yScale(0) + height*0.022) // Start at the first horizontal line
         .attr("x2", -maxLabelWidth*0.75 + width*0.3) // Same x-coordinate for vertical line
-        .attr("y2", yScale(numericalColumns.length - 1) + yScale.bandwidth() + height*0.04) // End at the position of the last horizontal line
+        .attr("y2", yScale(numericalColumns.length - 1) + yScale.bandwidth() + height*0.022) // End at the position of the last horizontal line
         .style("stroke", "black") // Line color
         .style("stroke-width", 1); // Line width
 
     // Add a small line at the bottom
         svg.append("line")
         .attr("x1", width*0.3) // x2 from the previous line
-        .attr("y1", yScale(numericalColumns.length - 1) + yScale.bandwidth() + height * 0.04) // y2 from the previous line
+        .attr("y1", yScale(numericalColumns.length - 1) + yScale.bandwidth() + height * 0.022) // y2 from the previous line
         .attr("x2", (width*0.3) + (Math.sqrt(2 * (cellSize ** 2)))) // x2 + cellSize
-        .attr("y2", (yScale(numericalColumns.length - 1) + yScale.bandwidth() + height * 0.04) - (Math.sqrt(2 * (cellSize ** 2)))) // y2 + cellSize
+        .attr("y2", (yScale(numericalColumns.length - 1) + yScale.bandwidth() + height * 0.022) - (Math.sqrt(2 * (cellSize ** 2)))) // y2 + cellSize
         .style("stroke", "black") // Line color
         .style("stroke-width", 1); // Line width
 
     // Add a small line at the top
     svg.append("line")
     .attr("x1", width*0.3) // x2 from the previous line
-    .attr("y1", yScale(0) + height*0.04) // y2 from the previous line
+    .attr("y1", yScale(0) + height*0.022) // y2 from the previous line
     .attr("x2", (width*0.3) + (Math.sqrt(2 * (cellSize ** 2)))) // x2 + cellSize
-    .attr("y2", (yScale(0) + height*0.04) + (Math.sqrt(2 * (cellSize ** 2)))) // y2 + cellSize
+    .attr("y2", (yScale(0) + height*0.022) + (Math.sqrt(2 * (cellSize ** 2)))) // y2 + cellSize
     .style("stroke", "black") // Line color
     .style("stroke-width", 1); // Line width
 
-    matrixGroup.attr("transform", `translate(${width*0.3}, ${height*0.04})`);
+    matrixGroup.attr("transform", `translate(${width*0.3}, ${height*0.022})`);
 
     // Function to handle year range updates
     function handleYearRangeUpdate(yearRange) {
@@ -286,3 +293,77 @@ function formatLabel(label) {
     // Join the words back together
     return words.join(' ');
 }
+
+function addColorScaleLegend(svg, colorScale, width, height, cellSize) {
+    // Define the color legend dimensions
+    const legendWidth = width * 0.03;  // Adjust the width of the legend bar
+    const legendHeight = height * 0.6;  // Adjust the height of the legend bar
+
+    // Create a gradient for the color scale
+    const gradient = svg.append("defs")
+        .append("linearGradient")
+        .attr("id", "color-gradient")
+        .attr("x1", "0%")
+        .attr("y1", "100%")
+        .attr("x2", "0%")
+        .attr("y2", "0%");
+
+    // Define the color stops for the gradient (-1 to 1)
+    gradient.append("stop").attr("offset", "0%").attr("stop-color", "red");
+    gradient.append("stop").attr("offset", "50%").attr("stop-color", "white");
+    gradient.append("stop").attr("offset", "100%").attr("stop-color", "green");
+
+    // Append a rectangle filled with the gradient to represent the color scale
+    svg.append("rect")
+        .attr("x", width * 0.65)
+        .attr("y", height * 0.2)
+        .attr("width", legendWidth)
+        .attr("height", legendHeight)
+        .style("fill", "url(#color-gradient)");
+
+    // Add text on top of legend
+    svg.append("text")
+        .attr("x", width * 0.605)
+        .attr("y", height * 0.13)
+        .style("font-family", "Arial")
+        .style("font-size", height * 0.038)
+        .style("alignment-baseline", "middle")
+        .text("Strong Correlation"); // Replace with the actual description
+
+    // Create a scale for the legend axis (from -1 to 1)
+    const legendScale = d3.scaleLinear()
+        .domain([-1, 1])
+        .range([legendHeight, 0]);
+
+    // Create the axis for the color legend
+    const legendAxis = d3.axisRight(legendScale)
+        .tickValues([-1, -0.5, 0, 0.5, 1])  // Adjust tick values
+        .tickFormat(d3.format(".1f"));  // Format the tick labels
+
+    // Append the axis to the right of the legend
+    svg.append("g")
+        .attr("transform", `translate(${width * 0.675}, ${height * 0.2})`)
+        .call(legendAxis);
+
+    // Style the axis and remove the domain line
+    svg.selectAll(".domain").remove();
+    svg.selectAll(".tick line").remove(); // Remove tick lines
+
+    // Add symbol for legend
+    svg.append("image")
+        .attr("xlink:href", "placeholders/icons8-cross.svg")
+        .attr("x", width * 0.651)
+        .attr("y", height * 0.25 + legendHeight)
+        .attr("width", cellSize)   // Adjust size
+        .attr("height", cellSize);
+
+    // Add text next to the symbol
+    svg.append("text")
+        .attr("x", width * 0.685)
+        .attr("y", height * 0.29 + legendHeight)
+        .style("font-family", "Arial")
+        .style("font-size", height * 0.035)
+        .style("alignment-baseline", "middle")
+        .text("Strong Correlation"); // Replace with the actual description
+}
+
