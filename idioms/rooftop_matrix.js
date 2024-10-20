@@ -323,12 +323,12 @@ function addColorScaleLegend(svg, colorScale, width, height, cellSize) {
 
     // Add text on top of legend
     svg.append("text")
-        .attr("x", width * 0.605)
+        .attr("x", width * 0.625)
         .attr("y", height * 0.13)
         .style("font-family", "Arial")
         .style("font-size", height * 0.038)
         .style("alignment-baseline", "middle")
-        .text("Strong Correlation"); // Replace with the actual description
+        .text("Correlation"); // Replace with the actual description
 
     // Create a scale for the legend axis (from -1 to 1)
     const legendScale = d3.scaleLinear()
@@ -343,6 +343,8 @@ function addColorScaleLegend(svg, colorScale, width, height, cellSize) {
     // Append the axis to the right of the legend
     svg.append("g")
         .attr("transform", `translate(${width * 0.675}, ${height * 0.2})`)
+        .style("font-family", "Arial")
+        .style("font-size", height * 0.03)
         .call(legendAxis);
 
     // Style the axis and remove the domain line
