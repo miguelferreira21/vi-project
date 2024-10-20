@@ -343,6 +343,8 @@ function addColorScaleLegend(svg, colorScale, width, height, cellSize) {
     // Append the axis to the right of the legend
     svg.append("g")
         .attr("transform", `translate(${width * 0.675}, ${height * 0.2})`)
+        .style("font-family", "Arial")
+        .style("font-size", height * 0.03)
         .call(legendAxis);
 
     // Style the axis and remove the domain line
