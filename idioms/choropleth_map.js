@@ -1,5 +1,6 @@
 let svg, mapGroup, colorScale, legendHeight;
 let currentData, initialExtent;
+let tooltip;
 
 function createChoroplethMap(data, containerId) {
   currentData = data;
@@ -72,9 +73,24 @@ function createChoroplethMap(data, containerId) {
       .attr("stroke", "#fff")
       .attr("stroke-width", 0.05);
 
+      // Create tooltip once
+    tooltip = d3.select("body").append("div")
+    .attr("class", "tooltip") // Ensure this class is styled in CSS
+    .style("position", "absolute")
+    .style("background-color", "lightsteelblue")
+    .style("border", "solid")
+    .style("border-width", "1px")
+    .style("border-radius", "5px")
+    .style("font-family", "Arial")
+    .style("font-size", "14px")
+    .style("padding", "5px")
+    .style("pointer-events", "none") // Allows mouse events to pass through
+    .style("opacity", 0); // Initially hidden
+
     // Subscribe to updates
     LinkedCharts.subscribe('yearRange', handleYearRangeUpdate);
     LinkedCharts.subscribe('dataUpdate', handleDataUpdate);
+    LinkedCharts.subscribe('parallelCoordinatesFilter', handleParallelCoordinatesFilter);
 
     // Create static legend based on initial data
     createStaticLegend(currentData, width, height);
@@ -85,11 +101,8 @@ function createChoroplethMap(data, containerId) {
 }
 
 function handleYearRangeUpdate(yearRange) {
-  console.log("Received yearRange update:", yearRange);
   const { startYear, endYear, selectedYear } = yearRange;
-  console.log("startYear:", startYear, "endYear:", endYear, "selectedYear:", selectedYear);
   
-  console.log("Current data sample:", currentData.slice(0, 5)); // Log a sample of current data
   
   const filteredData = currentData.filter(d => {
     const dataYear = parseInt(d.year);
@@ -103,11 +116,8 @@ function handleYearRangeUpdate(yearRange) {
     }
   });
   
-  console.log("Filtered data length:", filteredData.length);
-  console.log("Filtered data sample:", filteredData.slice(0, 5)); // Log a sample of filtered data
   
   if (filteredData.length === 0) {
-    console.warn("No data found for the selected year range");
     return; // Skip if no data is found
   }
   
@@ -119,37 +129,43 @@ function handleDataUpdate(newData) {
   updateChoroplethMap(currentData);
 }
 
+function handleParallelCoordinatesFilter(filteredData) {
+  updateChoroplethMap(filteredData);
+}
+
 function updateChoroplethMap(data) {
   // Data pre-processing
   const processedData = preprocessData(data);
 
-  // Use the initial extent for coloring, not the current data extent
-  console.log("Happiness score extent (initial):", initialExtent);
 
-  // Update map colors
+  // Update map colors and event listeners
   mapGroup.selectAll("path")
-    .attr("fill", d => {
-      if (!d || !d.properties) {
-        return "#ccc";
-      }
-      const countryData = processedData.find(item => item.country === d.properties.name);
-      return countryData ? colorScale(countryData.happiness_score) : "#ccc";
-    });
- 
-  // Add or update mouseover and mouseout events
-  mapGroup.selectAll("path")
-    .on("mouseover", function(event, d) {
-      if (!d || !d.properties) return; // Skip if data is invalid
-      d3.select(this).raise().attr("stroke", "#000").attr("stroke-width", 0.40);
-      const countryData = processedData.find(item => item.country === d.properties.name);
-      if (countryData) {
-        showTooltip(event, d, countryData);
-      }
-    })
-    .on("mouseout", function() {
-      d3.select(this).attr("stroke", "#fff").attr("stroke-width", 0.25);
-      hideTooltip();
-    });
+  .attr("fill", d => {
+    if (!d || !d.properties) {
+      return "#ccc";
+    }
+    const countryData = processedData.find(item => item.country === d.properties.name);
+    return countryData ? colorScale(countryData.happiness_score) : "#ccc";
+  })
+  .on("mouseover", function(event, d) {
+    if (!d || !d.properties) return;
+    d3.select(this).raise().attr("stroke", "#000").attr("stroke-width", 0.40);
+    const countryData = processedData.find(item => item.country === d.properties.name);
+    if (countryData) {
+      showTooltip(event, d, countryData);
+    }
+  })
+  .on("mousemove", function(event, d) { // Add mousemove to update tooltip position
+    if (!d || !d.properties) return;
+    const countryData = processedData.find(item => item.country === d.properties.name);
+    if (countryData) {
+      updateTooltipPosition(event);
+    }
+  })
+  .on("mouseout", function() {
+    d3.select(this).attr("stroke", "#fff").attr("stroke-width", 0.25);
+    hideTooltip();
+  });
 }
 
 function createStaticLegend(initialData, width, height) {
@@ -210,24 +226,11 @@ function createStaticLegend(initialData, width, height) {
 }
 
 function showTooltip(event, d, countryData) {
-  const tooltip = d3.select("body").append("div")
-    .attr("class", "tooltip")
-    .style("position", "absolute")
-    .style("background-color", "lightsteelblue")
-    .style("border", "solid")
-    .style("border-width", "1px")
-    .style("border-radius", "5px")
-    .style("font-family", "Arial")
-    .style("font-size", "14px")
-    .style("padding", "5px");
-
   // Check for -999 values and set to "N/A" if true
   const fertilityRate = countryData.fertility_rate === -999 ? "N/A" : countryData.fertility_rate.toFixed(2);
   const temperature = countryData.temperature === -999 ? "N/A" : countryData.temperature.toFixed(2);
-
-  // Construct temperature display string
   const temperatureDisplay = countryData.temperature === -999 ? temperature : `${temperature} ºC`;
-  
+
   tooltip.html(`
     <strong>${d.properties.name}</strong><br>
     Happiness Score: ${countryData.happiness_score.toFixed(2)}<br>
@@ -237,12 +240,25 @@ function showTooltip(event, d, countryData) {
     Temperature: ${temperatureDisplay}<br>
     Fertility Rate: ${fertilityRate}
   `)
+  .style("left", (event.pageX + 10) + "px")
+  .style("top", (event.pageY - 28) + "px")
+  .transition()
+  .duration(60)
+  .style("opacity", 0.9);
+}
+
+// Update tooltip position during mousemove
+function updateTooltipPosition(event) {
+  tooltip
     .style("left", (event.pageX + 10) + "px")
     .style("top", (event.pageY - 28) + "px");
 }
 
 function hideTooltip() {
-  d3.select(".tooltip").remove();
+  tooltip
+    .transition()
+    .duration(60)
+    .style("opacity", 0);
 }
 
 function preprocessData(data) {
@@ -260,8 +276,6 @@ function preprocessData(data) {
     const avgHealthyLifeExpectancy = average(entries.map(d => d.healthy_life_expectancy));
     const avgTemperature = average(entries.map(d => d.temperature));
     const avgFertilityRate = average(entries.map(d => d.fertility_rate));
-
-
 
     return {
       country: country,
