@@ -1,6 +1,6 @@
 function createParallelCoordinates(initialData, containerId) {
     let data = initialData;
-    console.log(initialData)
+    
     const keys = Object.keys(data[0]).filter(d => d !== 'country' && d !== 'year' && d !== 'region');
     const colorKey = 'population'; // Fixed key for color scale
     let selectedCountry = null; // Variable to store the selected country
@@ -31,7 +31,7 @@ function createParallelCoordinates(initialData, containerId) {
     const width = containerWidth - margin.left - margin.right;
     const height = containerHeight - margin.top - margin.bottom;
 
-    data = calculateAverages(data, keys);
+    let averagedData = calculateAverages(data, keys);
 
     // Clear the container
     container.selectAll("*").remove();
@@ -55,22 +55,22 @@ function createParallelCoordinates(initialData, containerId) {
     for (let key of keys) {
         if (key === 'temperature') {
             y[key] = d3.scaleLinear()
-                .domain([d3.min(data.filter(d => +d[key] !== -999.0), d => +d[key]), d3.max(data, d => +d[key])])
+                .domain([d3.min(averagedData.filter(d => +d[key] !== -999.0), d => +d[key]), d3.max(averagedData, d => +d[key])])
                 .range([height, 0]);
         } else if (key === 'fertility_rate') {
             y[key] = d3.scaleLinear()
-                .domain([0, d3.max(data, d => +d[key])])
+                .domain([0, d3.max(averagedData, d => +d[key])])
                 .range([height, 0]);
         } else {
             y[key] = d3.scaleLinear()
-                .domain(d3.extent(data, d => +d[key]))
+                .domain(d3.extent(averagedData, d => +d[key]))
                 .range([height, 0]);
         }
     }
 
     // Function to get the color scale based on the population attribute
     const totalPopulationByRegion = calculateTotalPopulationByRegion(initialData);
-    console.log(totalPopulationByRegion);
+
     const initialPopulationExtent = [
         d3.min([...totalPopulationByRegion.values()]), 
         d3.max([...totalPopulationByRegion.values()])
@@ -250,7 +250,7 @@ function createParallelCoordinates(initialData, containerId) {
     // -------------------
     function drawLines(filteredData) {
         const dataToRender = selectedCountry 
-            ? data.filter(d => d.country === selectedCountry)
+            ? averagedData.filter(d => d.country === selectedCountry)
             : filteredData;
     
         // Bind data with unique identifier
@@ -372,7 +372,7 @@ function createParallelCoordinates(initialData, containerId) {
         );
     }
     // Initial draw
-    drawLines(data);
+    drawLines(averagedData);
 
     // -------------------
     // **Brush and Selection Handling**
@@ -386,9 +386,10 @@ function createParallelCoordinates(initialData, containerId) {
             activeBrushes.delete(key);
             brushExtents.delete(key);
         }
+        const filteredDataForDraw = filterData(averagedData);
         const filteredData = filterData(data);
         selectedData = new Set(filteredData);
-        drawLines(filteredData);
+        drawLines(filteredDataForDraw);
         LinkedCharts.publish('parallelCoordinatesFilter', filteredData);
     }
 
@@ -467,7 +468,7 @@ function createParallelCoordinates(initialData, containerId) {
     
 
     // Initial legend creation
-    createStaticLegend(data, width, height);
+    createStaticLegend(averagedData, width, height);
 
     // -------------------
     // **Data Update Handling**
@@ -497,21 +498,21 @@ function createParallelCoordinates(initialData, containerId) {
         if (countryData) {
             selectedCountry = countryData.country;
             // Filter data for the selected country
-            const countryFilteredData = data.filter(d => d.country === selectedCountry);
+            const countryFilteredData = averagedData.filter(d => d.country === selectedCountry);
             selectedData = new Set(countryFilteredData);
         } else {
             selectedCountry = null;
             // Reset to show all data
-            selectedData = new Set(data);
+            selectedData = new Set(averagedData);
         }
-        drawLines(data);
+        drawLines(averagedData);
     }
 
     function updateParallelCoordinates(updatedData) {
-        data = calculateAverages(updatedData, keys);
+        averagedData = calculateAverages(updatedData, keys);
     
         // Update scales
-        updateScales(data);
+        updateScales(averagedData);
 
         // Update axes
         svg.selectAll(".axis")
@@ -523,11 +524,11 @@ function createParallelCoordinates(initialData, containerId) {
 
         // Update legend
         svg.selectAll(".parallel-coordinates-legend").remove();
-        createStaticLegend(data, width, height);
+        createStaticLegend(averagedData, width, height);
     
         // Redraw lines
-        selectedData = new Set(filterData(data));
-        drawLines(filterData(data));
+        selectedData = new Set(filterData(averagedData));
+        drawLines(filterData(averagedData));
     }
 
     function updateScales(data) {
@@ -566,12 +567,12 @@ function createParallelCoordinates(initialData, containerId) {
 
     // Function to calculate total population by region
     function calculateTotalPopulationByRegion(data) {
-        console.log(data)
+
         const totalPopulationByRegion = d3.rollup(data, 
             v => d3.sum(v, d => +d.population), // Sum population
             d => d.region // Group by region
         );
-        console.log(totalPopulationByRegion)
+
         // Convert to a Map for easy access
         return new Map(totalPopulationByRegion);
     }
