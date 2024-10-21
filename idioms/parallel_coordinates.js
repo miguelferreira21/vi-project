@@ -239,7 +239,16 @@ function createParallelCoordinates(initialData, containerId) {
     }
 
     function linePath(d) {
-        return d3.line()(keys.map(key => [x(getDisplayName(key)), y[key](d[key])]));
+        return d3.line()(
+            keys.map(key => {
+                const value = d[key];
+                // Check if the value is valid (not -999 or undefined)
+                if (value === -999 || value === undefined) {
+                    return [x(getDisplayName(key)), height]; // Place it at the bottom if value is invalid
+                }
+                return [x(getDisplayName(key)), y[key](value)];
+            })
+        );
     }
 
     // Initial draw
