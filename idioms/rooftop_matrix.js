@@ -9,8 +9,6 @@ function createRooftopMatrix(data, containerId) {
     const height = d3.select(containerId).node().clientHeight * 1.75;
     const cellSize = Math.min(width*0.68, height*0.68) / numericalColumns.length;
 
-
-
     // Create the SVG element
     var svg = d3.select(containerId)
         .append("svg")
@@ -79,7 +77,7 @@ function createRooftopMatrix(data, containerId) {
             symbolGroup = svg.append("g").attr("class", "symbol-group");
         }
 
-        // Create/                              update the matrix cells
+        // Create/update the matrix cells
         const cells = cellGroup.selectAll("rect")
             .data(flatCorrelations, d => `${d.i}-${d.j}`);
 
@@ -252,6 +250,9 @@ function createRooftopMatrix(data, containerId) {
 
     // Subscribe to data updates
     LinkedCharts.subscribe('dataUpdate', handleDataUpdate);
+
+    // Subscribe to parallel coordinates filter
+    LinkedCharts.subscribe('parallelCoordinatesFilter', handleDataUpdate);
 }
 
 // Function to calculate correlation, ignoring missing values
@@ -368,4 +369,3 @@ function addColorScaleLegend(svg, colorScale, width, height, cellSize) {
         .style("alignment-baseline", "middle")
         .text("Strong Correlation"); // Replace with the actual description
 }
-

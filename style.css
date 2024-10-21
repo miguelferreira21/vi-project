@@ -95,3 +95,39 @@
   stroke-width: 1.5px;
   stroke-opacity: 0.4;
 }
+
+/* Style for axis lines and paths */
+.axis path,
+.axis line {
+    stroke: black; /* Ensures axes are clearly visible */
+    stroke-width: 1px;
+}
+
+/* Style for axis labels */
+.axis text {
+    font-size: 12px; /* Increase as needed */
+    font-weight: bold; /* Make labels bold */
+    fill: black; /* Contrast color */
+    paint-order: stroke; /* Ensures text outlines are rendered */
+    stroke: white; /* Adds a white outline to text for better contrast */
+    stroke-width: 0.5px;
+    /* Removed pointer-events: none to allow clicking on titles */
+}
+
+/* Enhance visual feedback for selected lines */
+.lines path.selected {
+  stroke: orange; /* Choose a distinct color for selected lines */
+  stroke-width: 3px; /* Slightly thicker for emphasis */
+  opacity: 1; /* Fully opaque */
+}
+
+/* Ensure hover styling precedes selected styling */
+.lines path:hover {
+  stroke: red;
+  stroke-width: 3px;
+  opacity: 1;
+}
+
+
+
+
