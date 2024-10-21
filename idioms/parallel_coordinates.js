@@ -78,7 +78,7 @@ function createParallelCoordinates(initialData, containerId) {
     const getColorScale = () => {
         return d3.scaleSequential()
             .domain(initialPopulationExtent)
-            .interpolator(d3.interpolateRgb("#F0E68C", "#FF4500")); // Khaki to Dark Orange
+            .interpolator(d3.interpolateRgb("#FFE4B5", "#FF4500")); // Moccasin to Dark Orange
     };
     const color = getColorScale();
 
@@ -388,6 +388,7 @@ function createParallelCoordinates(initialData, containerId) {
         }
         const filteredData = filterData(data);
         selectedData = new Set(filteredData);
+        
         drawLines(filteredData);
         LinkedCharts.publish('parallelCoordinatesFilter', filteredData);
     }

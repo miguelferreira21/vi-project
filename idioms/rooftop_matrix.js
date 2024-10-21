@@ -173,6 +173,7 @@ function createRooftopMatrix(data, containerId) {
                 .attr("x", width / 2)
                 .attr("y", 20)
                 .attr("text-anchor", "middle")
+                .style("font-family", "Arial")
                 .attr("font-size", "16px")
                 .attr("font-weight", "bold");
         }
