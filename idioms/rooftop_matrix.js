@@ -1,6 +1,6 @@
 function createRooftopMatrix(data, containerId) {
     // Filter out non-numerical columns ("country" and "region")
-    var numericalColumns = data.columns.filter(col => !['country', 'region', 'year'].includes(col));
+    var numericalColumns = data.columns.filter(col => !['country', 'region', 'year', 'population'].includes(col));
 
     // Create a nested array to store the correlation values
     var correlations = [];
