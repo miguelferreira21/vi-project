@@ -189,7 +189,8 @@ function createParallelCoordinates(initialData, containerId) {
         // Transition lines to new positions
         linesGroup.selectAll("path")
             .transition()
-            .duration(500)
+            .duration(400)
+            .ease(d3.easeCubic)
             .attr("d", d => linePath(d));
 
         // Reapply brushes
@@ -392,14 +393,13 @@ function createParallelCoordinates(initialData, containerId) {
     }
 
     function filterData(dataToFilter) {
+        if (brushExtents.size === 0) return dataToFilter;
+        
         return dataToFilter.filter(d => {
-            for (let [key, brushRange] of brushExtents) {
+            return Array.from(brushExtents).every(([key, brushRange]) => {
                 const value = +d[key];
-                if (value < brushRange[1] || value > brushRange[0]) {
-                    return false;
-                }
-            }
-            return true;
+                return value >= brushRange[1] && value <= brushRange[0];
+            });
         });
     }
 
@@ -508,18 +508,7 @@ function createParallelCoordinates(initialData, containerId) {
         data = updatedData;
 
         // Update scales
-        for (let key of keys) {
-            if (key === 'temperature') {
-                y[key].domain([
-                    d3.min(data.filter(d => +d[key] !== -999.0), d => +d[key]),
-                    d3.max(data, d => +d[key])
-                ]);
-            } else if (key === 'fertility_rate') {
-                y[key].domain([0, d3.max(data, d => +d[key])]);
-            } else {
-                y[key].domain(d3.extent(data, d => +d[key]));
-            }
-        }
+        updateScales(data);
 
         // Update color scale (remains bound to happiness_score)
         // No need to update as colorKey is fixed
@@ -538,4 +527,20 @@ function createParallelCoordinates(initialData, containerId) {
         selectedData = new Set(filterData(data));
         drawLines(filterData(data));
     }
+
+    function updateScales(data) {
+        keys.forEach(key => {
+            if (key === 'temperature') {
+                y[key].domain([
+                    d3.min(data.filter(d => +d[key] !== -999.0), d => +d[key]),
+                    d3.max(data, d => +d[key])
+                ]);
+            } else if (key === 'fertility_rate') {
+                y[key].domain([0, d3.max(data, d => +d[key])]);
+            } else {
+                y[key].domain(d3.extent(data, d => +d[key]));
+            }
+        });
+    }
+
 }
