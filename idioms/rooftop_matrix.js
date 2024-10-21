@@ -37,6 +37,7 @@ function createRooftopMatrix(data, containerId) {
     // Keep track of the current year range and filtered data
     let currentYearRange = { startYear: d3.min(data, d => d.year), endYear: d3.max(data, d => d.year) };
     let currentFilteredData = data;
+    let selectedCountry = null; // Variable to keep track of the selected country
 
     // Create a group for the matrix
     const matrixGroup = svg.append("g").attr("class", "matrix-group");
@@ -46,7 +47,12 @@ function createRooftopMatrix(data, containerId) {
     // Function to create/update the matrix cells
     function updateMatrix() {
         // Apply both year range and other filters
-        const filteredData = currentFilteredData.filter(d => d.year >= currentYearRange.startYear && d.year <= currentYearRange.endYear);
+        let filteredData = currentFilteredData.filter(d => d.year >= currentYearRange.startYear && d.year <= currentYearRange.endYear);
+
+        // If a country is selected, filter the data for that country
+        if (selectedCountry) {
+            filteredData = filteredData.filter(d => d.country === selectedCountry);
+        }
 
         // Recalculate correlations
         correlations = [];
@@ -158,8 +164,19 @@ function createRooftopMatrix(data, containerId) {
             // Remove the overlay rectangles
             svg.selectAll("rect.overlay").remove();
         });
-        
 
+        // Add a title to show the selected country (if any)
+        let title = svg.select(".matrix-title");
+        if (title.empty()) {
+            title = svg.append("text")
+                .attr("class", "matrix-title")
+                .attr("x", width / 2)
+                .attr("y", 20)
+                .attr("text-anchor", "middle")
+                .attr("font-size", "16px")
+                .attr("font-weight", "bold");
+        }
+        title.text(selectedCountry ? `Correlations for ${selectedCountry}` : "Global Correlations");
     }
 
     // Initial update with all data
@@ -266,6 +283,16 @@ function createRooftopMatrix(data, containerId) {
         updateMatrix();
     }
 
+    // Function to handle country selection
+    function handleCountrySelection(selection) {
+        if (selection && selection.country) {
+            selectedCountry = selection.country;
+        } else {
+            selectedCountry = null;
+        }
+        updateMatrix();
+    }
+
     // Subscribe to year range updates
     LinkedCharts.subscribe('yearRange', handleYearRangeUpdate);
 
@@ -274,6 +301,9 @@ function createRooftopMatrix(data, containerId) {
 
     // Subscribe to parallel coordinates filter
     LinkedCharts.subscribe('parallelCoordinatesFilter', handleDataUpdate);
+
+    // Subscribe to country selection
+    LinkedCharts.subscribe('countrySelection', handleCountrySelection);
 }
 
 // Function to calculate correlation, ignoring missing values

@@ -2,6 +2,7 @@ function createParallelCoordinates(initialData, containerId) {
     let data = initialData;
     const keys = Object.keys(data[0]).filter(d => d !== 'country' && d !== 'year' && d !== 'region');
     let currentColorKey = 'happiness_score'; // Default key for color scale
+    let selectedCountry = null; // New variable to store the selected country
 
     // Replace names in the chart
     const columnNameMap = {
@@ -164,9 +165,14 @@ function createParallelCoordinates(initialData, containerId) {
     // **Lines Rendering with Hover and Brush**
     // -------------------
     function drawLines(filteredData) {
+        // Determine which data to render
+        const dataToRender = selectedCountry 
+            ? data.filter(d => d.country === selectedCountry)
+            : filteredData;
+
         // Bind data with unique identifier
         const lines = linesGroup.selectAll("path")
-            .data(data, d => d.country + d.year); // Ensure uniqueness
+            .data(dataToRender, d => d.country + d.year);
 
         // Remove exiting lines
         lines.exit().remove();
@@ -175,66 +181,94 @@ function createParallelCoordinates(initialData, containerId) {
         const linesEnter = lines.enter()
             .append("path")
             .attr("d", d => linePath(d))
-            .attr("stroke", d => color(d[currentColorKey]))
-            .attr("stroke-width", 1)
-            .attr("fill", "none")
-            .attr("opacity", 0.1); // Start with dimmed opacity
+            .attr("fill", "none");
 
         // Merge enter and existing lines
         linesEnter.merge(lines)
             .transition()
             .duration(60)
             .attr("d", d => linePath(d))
-            .attr("stroke", d => color(d[currentColorKey]))
+            .attr("stroke", d => {
+                if (selectedCountry && d.country === selectedCountry) {
+                    return "#8B0000"; // Dark red color
+                }
+                return color(d[currentColorKey]);
+            })
+            .attr("stroke-width", d => {
+                if (selectedCountry && d.country === selectedCountry) {
+                    return 2;
+                }
+                return 1;
+            })
             .attr("opacity", d => {
+                if (selectedCountry) {
+                    return d.country === selectedCountry ? 1 : 0.1;
+                }
                 if (hoveredData && hoveredData === d) {
-                    return 1; // Fully opaque for hovered line
+                    return 1;
                 } else if (selectedData.has(d)) {
-                    return 1; // Fully opaque for selected lines
+                    return 1;
                 } else {
-                    return 0.1; // Dimmed for others
+                    return 0.1;
                 }
             });
 
-        // Add event listeners for hover interactions
-        linesEnter
-            .on("mouseover", function (event, d) {
+        // Add hover interactions
+        linesEnter.merge(lines)
+            .on("mouseover", function(event, d) {
                 hoveredData = d;
                 d3.select(this)
                     .attr("stroke-width", 3)
-                    .attr("stroke", "red"); // Highlight color for hover
+                    .attr("stroke", "#FF4500"); // Orangered for hover
 
                 // Show tooltip
                 tooltip.transition()
                     .duration(200)
                     .style("opacity", 0.9);
 
-                // Define tooltip content (Customize as needed)
+                // Define tooltip content
                 tooltip.html(`
                     <strong>Country:</strong> ${d.country}<br/>
                     <strong>Year:</strong> ${d.year}<br/>
-                    <strong>Happiness Score:</strong> ${d.happiness_score}<br/>
+                    <strong>Happiness Score:</strong> ${d.happiness_score.toFixed(2)}<br/>
                     <!-- Add more fields as necessary -->
                 `)
                     .style("left", (event.pageX + 10) + "px")
                     .style("top", (event.pageY - 28) + "px");
             })
             .on("mousemove", function (event, d) {
-                // Update tooltip position based on mouse movement
                 tooltip
                     .style("left", (event.pageX + 10) + "px")
                     .style("top", (event.pageY - 28) + "px");
             })
-            .on("mouseout", function (event, d) {
+            .on("mouseout", function(event, d) {
                 hoveredData = null;
                 d3.select(this)
-                    .attr("stroke-width", 1)
-                    .attr("stroke", color(d[currentColorKey]));
+                    .attr("stroke-width", selectedCountry && d.country === selectedCountry ? 2 : 1)
+                    .attr("stroke", selectedCountry && d.country === selectedCountry ? "#8B0000" : color(d[currentColorKey]))
+                    .attr("opacity", () => {
+                        if (selectedCountry) {
+                            return d.country === selectedCountry ? 1 : 0.1;
+                        }
+                        return selectedData.has(d) ? 1 : 0.1;
+                    });
 
                 // Hide tooltip
                 tooltip.transition()
                     .duration(200)
                     .style("opacity", 0);
+            })
+            .on("click", function(event, d) {
+                if (selectedCountry === d.country) {
+                    // Deselect the country
+                    selectedCountry = null;
+                    LinkedCharts.publish('countrySelection', null);
+                } else {
+                    // Select the country
+                    selectedCountry = d.country;
+                    LinkedCharts.publish('countrySelection', { country: d.country, year: d.year });
+                }
+                drawLines(filteredData);
             });
     }
 
@@ -381,6 +415,7 @@ function createParallelCoordinates(initialData, containerId) {
     // -------------------
     LinkedCharts.subscribe('yearRange', handleYearRangeUpdate);
     LinkedCharts.subscribe('dataUpdate', handleDataUpdate);
+    LinkedCharts.subscribe('countrySelection', handleCountrySelection);
 
     function handleYearRangeUpdate(yearRange) {
         const { startYear, endYear, selectedYear } = yearRange;
@@ -396,6 +431,20 @@ function createParallelCoordinates(initialData, containerId) {
     function handleDataUpdate(newData) {
         initialData = newData;
         updateParallelCoordinates(newData);
+    }
+
+    function handleCountrySelection(countryData) {
+        if (countryData) {
+            selectedCountry = countryData.country;
+            // Filter data for the selected country
+            const countryFilteredData = data.filter(d => d.country === selectedCountry);
+            selectedData = new Set(countryFilteredData);
+        } else {
+            selectedCountry = null;
+            // Reset to show all data
+            selectedData = new Set(data);
+        }
+        drawLines(data);
     }
 
     function updateParallelCoordinates(updatedData) {
