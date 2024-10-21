@@ -22,7 +22,7 @@ function createParallelCoordinates(initialData, containerId) {
     // Update keys to use display names
     const displayKeys = keys.map(getDisplayName);
 
-    const margin = { top: 60, right: 150, bottom: 30, left: 12 };
+    const margin = { top: 20, right: 150, bottom: 30, left: 12 };
     const container = d3.select(containerId);
     const containerWidth = container.node().clientWidth * 0.995; // Updated dimensioning
     const containerHeight = container.node().clientHeight * 1.65; // Updated dimensioning
@@ -95,30 +95,30 @@ function createParallelCoordinates(initialData, containerId) {
         .append("g")
         .attr("class", "axis")
         .attr("transform", d => `translate(${x(getDisplayName(d))},0)`)
-        .each(function(d) { d3.select(this).call(d3.axisLeft().scale(y[d])); });
+        .each(function (d) { d3.select(this).call(d3.axisLeft().scale(y[d])); });
 
     // Add interactive titles to axes
     axes.append("text")
         .style("text-anchor", "middle")
-        .style("font-size", "10.5px")
+        .style("font-size", width * 0.00995)
         .attr("y", height + 20)
         .text(d => getDisplayName(d))
         .style("fill", "black")
         .attr("class", "axis-title")
-        .on("mouseover", function() {
+        .on("mouseover", function () {
             d3.select(this).style("cursor", "pointer").style("font-weight", "bold");
         })
-        .on("mouseout", function() {
+        .on("mouseout", function () {
             if (d3.select(this).attr("data-selected") !== "true") {
                 d3.select(this).style("font-weight", "normal");
             }
         })
-        .on("click", function(event, d) {
+        .on("click", function (event, d) {
             const isSelected = d3.select(this).attr("data-selected") === "true";
             axes.selectAll(".axis-title")
                 .attr("data-selected", "false")
                 .style("font-weight", "normal");
-            
+
             if (!isSelected) {
                 d3.select(this).attr("data-selected", "true").style("font-weight", "bold");
                 updateColorScale(d);
@@ -136,19 +136,19 @@ function createParallelCoordinates(initialData, containerId) {
     svg.selectAll(".axis")
         .append("g")
         .attr("class", "brush")
-        .each(function(d) { d3.select(this).call(brush); });
+        .each(function (d) { d3.select(this).call(brush); });
 
     var tooltip = container.append("div")
-    .attr("class", "tooltip") // For CSS styling
-    .style("position", "absolute")
-    .style("background", "lightsteelblue")
-    .style("padding", "5px")
-    .style("border-radius", "5px")
-    .style("pointer-events", "none")
-    .style("font-family", "Arial")
-    .style("font-size", "14px")
-    .style("opacity", 0) // Initially hidden
-    .style("z-index", 10); // Ensures tooltip is on top
+        .attr("class", "tooltip") // For CSS styling
+        .style("position", "absolute")
+        .style("background", "lightsteelblue")
+        .style("padding", "5px")
+        .style("border-radius", "5px")
+        .style("pointer-events", "none")
+        .style("font-family", "Arial")
+        .style("font-size", "14px")
+        .style("opacity", 0) // Initially hidden
+        .style("z-index", 10); // Ensures tooltip is on top
 
     // Initialize state variables
     let activeBrushes = new Map();
@@ -198,7 +198,7 @@ function createParallelCoordinates(initialData, containerId) {
 
         // Add event listeners for hover interactions
         linesEnter
-            .on("mouseover", function(event, d) {
+            .on("mouseover", function (event, d) {
                 hoveredData = d;
                 d3.select(this)
                     .attr("stroke-width", 3)
@@ -208,7 +208,7 @@ function createParallelCoordinates(initialData, containerId) {
                 tooltip.transition()
                     .duration(200)
                     .style("opacity", 0.9);
-                
+
                 // Define tooltip content (Customize as needed)
                 tooltip.html(`
                     <strong>Country:</strong> ${d.country}<br/>
@@ -216,16 +216,16 @@ function createParallelCoordinates(initialData, containerId) {
                     <strong>Happiness Score:</strong> ${d.happiness_score}<br/>
                     <!-- Add more fields as necessary -->
                 `)
-                .style("left", (event.pageX + 10) + "px")
-                .style("top", (event.pageY - 28) + "px");
+                    .style("left", (event.pageX + 10) + "px")
+                    .style("top", (event.pageY - 28) + "px");
             })
-            .on("mousemove", function(event, d) {
+            .on("mousemove", function (event, d) {
                 // Update tooltip position based on mouse movement
                 tooltip
                     .style("left", (event.pageX + 10) + "px")
                     .style("top", (event.pageY - 28) + "px");
             })
-            .on("mouseout", function(event, d) {
+            .on("mouseout", function (event, d) {
                 hoveredData = null;
                 d3.select(this)
                     .attr("stroke-width", 1)
@@ -353,7 +353,7 @@ function createParallelCoordinates(initialData, containerId) {
     // -------------------
     function updateColorScale(key) {
         currentColorKey = key;
-        
+
         // Update color scale domain based on the selected key
         if (key === 'temperature') {
             color = d3.scaleSequential(d3.interpolateBrBG)
@@ -400,7 +400,7 @@ function createParallelCoordinates(initialData, containerId) {
 
     function updateParallelCoordinates(updatedData) {
         data = updatedData;
-        
+
         // Update scales
         for (let key of keys) {
             if (key === 'temperature') {
@@ -424,7 +424,7 @@ function createParallelCoordinates(initialData, containerId) {
 
         // Update axes
         svg.selectAll(".axis")
-            .each(function(d) {
+            .each(function (d) {
                 d3.select(this).call(d3.axisLeft().scale(y[d]));
             });
 
