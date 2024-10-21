@@ -43,7 +43,7 @@ function createFilters(data, containerId) {
     // Data for three bars
     const filtersData = [
         { id: 1, leftValue: 0, rightValue: 100, title: 'Top happiest countries (%)', start: 0, finish: 100 },
-        { id: 2, leftValue: minTemp, rightValue: maxTemp, title: 'Temperature (Â°C)', start: minTemp, finish: maxTemp },
+        { id: 2, leftValue: minTemp, rightValue: maxTemp, title: 'Temperature (°C)', start: minTemp, finish: maxTemp },
         { id: 3, leftValue: minFert, rightValue: maxFert, title: 'Fertility rate', start: minFert, finish: maxFert }
     ];
 
