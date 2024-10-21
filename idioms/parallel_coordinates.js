@@ -1,7 +1,8 @@
 function createParallelCoordinates(initialData, containerId) {
     let data = initialData;
     const keys = Object.keys(data[0]).filter(d => d !== 'country' && d !== 'year' && d !== 'region');
-    let currentColorKey = 'happiness_score'; // Default key for color scale
+    const colorKey = 'happiness_score'; // Fixed key for color scale
+    let selectedCountry = null; // Variable to store the selected country
 
     // Replace names in the chart
     const columnNameMap = {
@@ -19,8 +20,8 @@ function createParallelCoordinates(initialData, containerId) {
     // Function to get the display name for a key
     const getDisplayName = (key) => columnNameMap[key] || key;
 
-    // Update keys to use display names
-    const displayKeys = keys.map(getDisplayName);
+    // Initialize the order of axes with data key names
+    let displayKeysOrder = [...keys];
 
     const margin = { top: 20, right: 150, bottom: 30, left: 12 };
     const container = d3.select(containerId);
@@ -40,11 +41,13 @@ function createParallelCoordinates(initialData, containerId) {
         .append("g")
         .attr("transform", `translate(${margin.left},${margin.top})`);
 
-    const x = d3.scalePoint()
+    // Initial X Scale
+    let x = d3.scalePoint()
         .range([0, width])
         .padding(0.75)
-        .domain(displayKeys);
+        .domain(displayKeysOrder);
 
+    // Y Scales
     const y = {};
     for (let key of keys) {
         if (key === 'temperature') {
@@ -62,7 +65,7 @@ function createParallelCoordinates(initialData, containerId) {
         }
     }
 
-    // Function to get the color scale based on the selected attribute
+    // Function to get the color scale based on the fixed attribute
     const getColorScale = (key) => {
         if (key === 'temperature') {
             return d3.scaleSequential(d3.interpolateBrBG)
@@ -79,7 +82,7 @@ function createParallelCoordinates(initialData, containerId) {
         }
     };
 
-    let color = getColorScale(currentColorKey);
+    const color = getColorScale(colorKey);
 
     // -------------------
     // **Layer Ordering**
@@ -91,41 +94,125 @@ function createParallelCoordinates(initialData, containerId) {
 
     // 2. **Axes Group**: Rendered after lines (on top)
     const axes = svg.selectAll(".myAxis")
-        .data(keys).enter()
+        .data(displayKeysOrder)
+        .enter()
         .append("g")
         .attr("class", "axis")
-        .attr("transform", d => `translate(${x(getDisplayName(d))},0)`)
+        .attr("transform", d => `translate(${x(d)},0)`)
         .each(function (d) { d3.select(this).call(d3.axisLeft().scale(y[d])); });
 
     // Add interactive titles to axes
     axes.append("text")
+        .attr("class", "axis-title")
         .style("text-anchor", "middle")
         .style("font-size", width * 0.00995)
         .attr("y", height + 20)
         .text(d => getDisplayName(d))
         .style("fill", "black")
-        .attr("class", "axis-title")
+        .style("cursor", "move") // Indicate draggable
         .on("mouseover", function () {
-            d3.select(this).style("cursor", "pointer").style("font-weight", "bold");
+            d3.select(this).style("font-weight", "bold");
         })
         .on("mouseout", function () {
-            if (d3.select(this).attr("data-selected") !== "true") {
-                d3.select(this).style("font-weight", "normal");
-            }
-        })
-        .on("click", function (event, d) {
-            const isSelected = d3.select(this).attr("data-selected") === "true";
-            axes.selectAll(".axis-title")
-                .attr("data-selected", "false")
-                .style("font-weight", "normal");
-
-            if (!isSelected) {
-                d3.select(this).attr("data-selected", "true").style("font-weight", "bold");
-                updateColorScale(d);
-            } else {
-                updateColorScale('happiness_score');
-            }
+            d3.select(this).style("font-weight", "normal");
         });
+
+    // -------------------
+    // **Add Drag Behavior for Axis Reordering**
+    // -------------------
+
+    // Variables to track dragging state
+    let dragging = false;
+    let draggedKey = null;
+    let initialMouseX = null;
+    let initialAxisX = null;
+
+    // Drag Event Handlers
+    function dragStarted(event, d) {
+        dragging = true;
+        draggedKey = d;
+        initialMouseX = event.sourceEvent.pageX;
+        initialAxisX = x(d);
+        d3.select(this).classed("active", true);
+    }
+
+    function draggedAxisHandler(event, d) {
+        if (!dragging) return;
+
+        let dx = event.sourceEvent.pageX - initialMouseX;
+        let newX = initialAxisX + dx;
+
+        // Clamp the newX within the chart area
+        newX = Math.max(0, Math.min(width, newX));
+
+        // Update the position of the dragged axis
+        d3.select(this.parentNode)
+            .attr("transform", `translate(${newX},0)`);
+
+        // Optionally, show the dragged axis on top
+    }
+
+    function dragEnded(event, d) {
+        if (!dragging) return;
+        dragging = false;
+        d3.select(this).classed("active", false);
+
+        // Get the final x position of the dragged axis
+        const finalTransform = d3.select(this.parentNode).attr("transform");
+        const finalX = parseFloat(finalTransform.split("(")[1]);
+
+        // Calculate the step size between axes
+        const step = width / (displayKeysOrder.length - 1);
+
+        // Determine the new index based on the final x position
+        let newIndex = Math.round(finalX / step);
+        newIndex = Math.max(0, Math.min(displayKeysOrder.length - 1, newIndex));
+
+        // Find the current index of the dragged key
+        const oldIndex = displayKeysOrder.indexOf(draggedKey);
+
+        if (newIndex !== oldIndex) {
+            // Remove the axis from the old position
+            displayKeysOrder.splice(oldIndex, 1);
+            // Insert it into the new position
+            displayKeysOrder.splice(newIndex, 0, draggedKey);
+        }
+
+        // Update the x scale domain
+        x.domain(displayKeysOrder);
+
+        // Transition axes to new positions
+        axes.transition()
+            .duration(500)
+            .attr("transform", d => `translate(${x(d)},0)`);
+
+        // Transition lines to new positions
+        linesGroup.selectAll("path")
+            .transition()
+            .duration(400)
+            .ease(d3.easeCubic)
+            .attr("d", d => linePath(d));
+
+        // Reapply brushes
+        svg.selectAll(".brush")
+            .remove();
+
+        svg.selectAll(".axis")
+            .append("g")
+            .attr("class", "brush")
+            .each(function (d) { d3.select(this).call(brush); });
+
+        // Reset draggedKey
+        draggedKey = null;
+    }
+
+    const dragBehavior = d3.drag()
+        .on("start", dragStarted)
+        .on("drag", draggedAxisHandler)
+        .on("end", dragEnded);
+
+    // Apply drag behavior to axis titles
+    axes.select(".axis-title").call(dragBehavior);
 
     // 3. **Brushes Group**: Rendered after axes (on top)
     const brush = d3.brushY()
@@ -164,9 +251,14 @@ function createParallelCoordinates(initialData, containerId) {
     // **Lines Rendering with Hover and Brush**
     // -------------------
     function drawLines(filteredData) {
+        // Determine which data to render
+        const dataToRender = selectedCountry 
+            ? data.filter(d => d.country === selectedCountry)
+            : filteredData;
+
         // Bind data with unique identifier
         const lines = linesGroup.selectAll("path")
-            .data(data, d => d.country + d.year); // Ensure uniqueness
+            .data(dataToRender, d => d.country + d.year);
 
         // Remove exiting lines
         lines.exit().remove();
@@ -175,78 +267,106 @@ function createParallelCoordinates(initialData, containerId) {
         const linesEnter = lines.enter()
             .append("path")
             .attr("d", d => linePath(d))
-            .attr("stroke", d => color(d[currentColorKey]))
-            .attr("stroke-width", 1)
-            .attr("fill", "none")
-            .attr("opacity", 0.1); // Start with dimmed opacity
+            .attr("fill", "none");
 
         // Merge enter and existing lines
         linesEnter.merge(lines)
             .transition()
             .duration(60)
             .attr("d", d => linePath(d))
-            .attr("stroke", d => color(d[currentColorKey]))
+            .attr("stroke", d => {
+                if (selectedCountry && d.country === selectedCountry) {
+                    return "#8B0000"; // Dark red color
+                }
+                return color(d[colorKey]);
+            })
+            .attr("stroke-width", d => {
+                if (selectedCountry && d.country === selectedCountry) {
+                    return 2;
+                }
+                return 1;
+            })
             .attr("opacity", d => {
+                if (selectedCountry) {
+                    return d.country === selectedCountry ? 1 : 0.1;
+                }
                 if (hoveredData && hoveredData === d) {
-                    return 1; // Fully opaque for hovered line
+                    return 1;
                 } else if (selectedData.has(d)) {
-                    return 1; // Fully opaque for selected lines
+                    return 1;
                 } else {
-                    return 0.1; // Dimmed for others
+                    return 0.1;
                 }
             });
 
-        // Add event listeners for hover interactions
-        linesEnter
-            .on("mouseover", function (event, d) {
+        // Add hover interactions
+        linesEnter.merge(lines)
+            .on("mouseover", function(event, d) {
                 hoveredData = d;
                 d3.select(this)
                     .attr("stroke-width", 3)
-                    .attr("stroke", "red"); // Highlight color for hover
+                    .attr("stroke", "#FF4500"); // Orangered for hover
 
                 // Show tooltip
                 tooltip.transition()
                     .duration(200)
                     .style("opacity", 0.9);
 
-                // Define tooltip content (Customize as needed)
+                // Define tooltip content
                 tooltip.html(`
                     <strong>Country:</strong> ${d.country}<br/>
                     <strong>Year:</strong> ${d.year}<br/>
-                    <strong>Happiness Score:</strong> ${d.happiness_score}<br/>
+                    <strong>Happiness Score:</strong> ${d.happiness_score.toFixed(2)}<br/>
                     <!-- Add more fields as necessary -->
                 `)
                     .style("left", (event.pageX + 10) + "px")
                     .style("top", (event.pageY - 28) + "px");
             })
             .on("mousemove", function (event, d) {
-                // Update tooltip position based on mouse movement
                 tooltip
                     .style("left", (event.pageX + 10) + "px")
                     .style("top", (event.pageY - 28) + "px");
             })
-            .on("mouseout", function (event, d) {
+            .on("mouseout", function(event, d) {
                 hoveredData = null;
                 d3.select(this)
-                    .attr("stroke-width", 1)
-                    .attr("stroke", color(d[currentColorKey]));
+                    .attr("stroke-width", selectedCountry && d.country === selectedCountry ? 2 : 1)
+                    .attr("stroke", selectedCountry && d.country === selectedCountry ? "#8B0000" : color(d[colorKey]))
+                    .attr("opacity", () => {
+                        if (selectedCountry) {
+                            return d.country === selectedCountry ? 1 : 0.1;
+                        }
+                        return selectedData.has(d) ? 1 : 0.1;
+                    });
 
                 // Hide tooltip
                 tooltip.transition()
                     .duration(200)
                     .style("opacity", 0);
+            })
+            .on("click", function(event, d) {
+                if (selectedCountry === d.country) {
+                    // Deselect the country
+                    selectedCountry = null;
+                    LinkedCharts.publish('countrySelection', null);
+                } else {
+                    // Select the country
+                    selectedCountry = d.country;
+                    LinkedCharts.publish('countrySelection', { country: d.country, year: d.year });
+                }
+                drawLines(filteredData);
             });
     }
 
     function linePath(d) {
         return d3.line()(
-            keys.map(key => {
+            displayKeysOrder.map(key => {
                 const value = d[key];
                 // Check if the value is valid (not -999 or undefined)
                 if (value === -999 || value === undefined) {
-                    return [x(getDisplayName(key)), height]; // Place it at the bottom if value is invalid
+                    return [x(key), height]; // Place it at the bottom if value is invalid
                 }
-                return [x(getDisplayName(key)), y[key](value)];
+                return [x(key), y[key](value)];
             })
         );
     }
@@ -273,14 +393,13 @@ function createParallelCoordinates(initialData, containerId) {
     }
 
     function filterData(dataToFilter) {
+        if (brushExtents.size === 0) return dataToFilter;
+        
         return dataToFilter.filter(d => {
-            for (let [key, brushRange] of brushExtents) {
+            return Array.from(brushExtents).every(([key, brushRange]) => {
                 const value = +d[key];
-                if (value < brushRange[1] || value > brushRange[0]) {
-                    return false;
-                }
-            }
-            return true;
+                return value >= brushRange[1] && value <= brushRange[0];
+            });
         });
     }
 
@@ -288,7 +407,7 @@ function createParallelCoordinates(initialData, containerId) {
     // **Legend Setup**
     // -------------------
     function createStaticLegend(data, width, height) {
-        const extent = d3.extent(data, d => d[currentColorKey]);
+        const extent = d3.extent(data, d => d[colorKey]);
 
         const legendWidth = width * 0.025;
         const legendHeight = height * 0.55;
@@ -317,11 +436,11 @@ function createParallelCoordinates(initialData, containerId) {
 
         // Define the color stops for the gradient based on the color scale
         gradient.selectAll("stop")
-            .data(d3.range(0, 1.1, 0.1))
+            .data(d3.range(0, 1.001, 0.1))
             .enter()
             .append("stop")
             .attr("offset", d => d * 100 + "%")
-            .attr("stop-color", d => getColorScale(currentColorKey)(d3.quantile(extent, d))); // Use getColorScale
+            .attr("stop-color", d => color(d3.interpolateNumber(extent[0], extent[1])(d)));
 
         // Create rectangle for the gradient
         legend.append("rect")
@@ -342,45 +461,18 @@ function createParallelCoordinates(initialData, containerId) {
             .attr("text-anchor", "middle")
             .style("font-family", "Arial")
             .style("font-size", height * 0.04)
-            .text(getDisplayName(currentColorKey));
+            .text(getDisplayName(colorKey));
     }
 
     // Initial legend creation
     createStaticLegend(data, width, height);
 
     // -------------------
-    // **Color Scale Update**
-    // -------------------
-    function updateColorScale(key) {
-        currentColorKey = key;
-
-        // Update color scale domain based on the selected key
-        if (key === 'temperature') {
-            color = d3.scaleSequential(d3.interpolateBrBG)
-                .domain([
-                    d3.min(data.filter(d => +d[key] !== -999.0), d => +d[key]),
-                    d3.max(data, d => +d[key])
-                ]);
-        } else if (key === 'fertility_rate') {
-            color = d3.scaleSequential(d3.interpolateBrBG)
-                .domain([0, d3.max(data, d => +d[key])]);
-        } else {
-            color = d3.scaleSequential(d3.interpolateBrBG)
-                .domain(d3.extent(data, d => +d[key]));
-        }
-
-        // Update legend
-        svg.selectAll(".parallel-coordinates-legend").remove();
-        createStaticLegend(data, width, height);
-
-        drawLines(filterData(data));
-    }
-
-    // -------------------
     // **Data Update Handling**
     // -------------------
     LinkedCharts.subscribe('yearRange', handleYearRangeUpdate);
     LinkedCharts.subscribe('dataUpdate', handleDataUpdate);
+    LinkedCharts.subscribe('countrySelection', handleCountrySelection);
 
     function handleYearRangeUpdate(yearRange) {
         const { startYear, endYear, selectedYear } = yearRange;
@@ -398,25 +490,28 @@ function createParallelCoordinates(initialData, containerId) {
         updateParallelCoordinates(newData);
     }
 
+    function handleCountrySelection(countryData) {
+        if (countryData) {
+            selectedCountry = countryData.country;
+            // Filter data for the selected country
+            const countryFilteredData = data.filter(d => d.country === selectedCountry);
+            selectedData = new Set(countryFilteredData);
+        } else {
+            selectedCountry = null;
+            // Reset to show all data
+            selectedData = new Set(data);
+        }
+        drawLines(data);
+    }
+
     function updateParallelCoordinates(updatedData) {
         data = updatedData;
 
         // Update scales
-        for (let key of keys) {
-            if (key === 'temperature') {
-                y[key].domain([
-                    d3.min(data.filter(d => +d[key] !== -999.0), d => +d[key]),
-                    d3.max(data, d => +d[key])
-                ]);
-            } else if (key === 'fertility_rate') {
-                y[key].domain([0, d3.max(data, d => +d[key])]);
-            } else {
-                y[key].domain(d3.extent(data, d => +d[key]));
-            }
-        }
+        updateScales(data);
 
-        // Update color scale
-        color = getColorScale(currentColorKey);
+        // Update color scale (remains bound to happiness_score)
+        // No need to update as colorKey is fixed
 
         // Update legend
         svg.selectAll(".parallel-coordinates-legend").remove();
@@ -432,4 +527,20 @@ function createParallelCoordinates(initialData, containerId) {
         selectedData = new Set(filterData(data));
         drawLines(filterData(data));
     }
+
+    function updateScales(data) {
+        keys.forEach(key => {
+            if (key === 'temperature') {
+                y[key].domain([
+                    d3.min(data.filter(d => +d[key] !== -999.0), d => +d[key]),
+                    d3.max(data, d => +d[key])
+                ]);
+            } else if (key === 'fertility_rate') {
+                y[key].domain([0, d3.max(data, d => +d[key])]);
+            } else {
+                y[key].domain(d3.extent(data, d => +d[key]));
+            }
+        });
+    }
+
 }
