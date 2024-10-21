@@ -33,7 +33,7 @@ function createFilters(data, containerId) {
             averageHappiness: filteredData.length > 0 ? totalScore / filteredData.length : 0
         };
     });
-    
+
     // Min and max values for temperature and fertility
     const minTemp = d3.min(data.filter(d => +d.temperature !== -999.0), d => +d.temperature).toFixed(2);
     const maxTemp = d3.max(data, d => d.temperature).toFixed(2);
@@ -43,7 +43,7 @@ function createFilters(data, containerId) {
     // Data for three bars
     const filtersData = [
         { id: 1, leftValue: 0, rightValue: 100, title: 'Top happiest countries (%)', start: 0, finish: 100 },
-        { id: 2, leftValue: minTemp, rightValue: maxTemp, title: 'Temperature (°C)', start: minTemp, finish: maxTemp },
+        { id: 2, leftValue: minTemp, rightValue: maxTemp, title: 'Temperature (Â°C)', start: minTemp, finish: maxTemp },
         { id: 3, leftValue: minFert, rightValue: maxFert, title: 'Fertility rate', start: minFert, finish: maxFert }
     ];
 
@@ -65,16 +65,20 @@ function createFilters(data, containerId) {
         .style('flex', '1 1 auto')
         .style('height', '100%');
 
+    // Calculate Dynamic Gap for Checkbox Container
+    const totalCheckboxItems = regions.length + 1; // Including "Select All"
+    const minGap = 8;
+    const maxGap = 30;
+    const calculatedGap = Math.max(minGap, Math.min(maxGap, (height - 20) / totalCheckboxItems));
+
     // Create a region filter with checkboxes
     const checkboxContainer = container.append('div')
         .style('display', 'flex')
         .style('flex-direction', 'column')
         .style('margin-top', '10px')
-        .style('gap', height / 5 + "px")
-        .style('max-height', `${containerHeight - 20}px`) // Adjust max height
+        .style('gap', `${calculatedGap}px`) // Dynamic gap based on container's height
         .style('width', '100%')
-        .style('overflow-y', 'auto') // Enable scrolling if content overflows
-        .style('flex', '0 0 auto') // Prevent flex from resizing
+        .style('flex', '0 0 auto')
         .style('padding', '10px'); // Add some inner spacing
 
     // Scale for average happiness bars
@@ -90,19 +94,19 @@ function createFilters(data, containerId) {
 
     // Add the "Select All" checkbox
     const selectAllCheckbox = selectAllRow.append('input')
-        .style('transform', "scale(" + height / 125 + ")")
+        .style('transform', "scale(" + height / 350 + ")")
         .attr('type', 'checkbox')
         .attr('checked', true)  // All checked by default
-        .on('change', function() {
+        .on('change', function () {
             const isChecked = d3.select(this).property('checked');
-            
+
             // Set all region checkboxes to the state of the "Select All" checkbox
             checkboxContainer.selectAll('input.region-checkbox')
                 .property('checked', isChecked);
-            
+
             // Update selectedRegions based on the current state
             selectedRegions = isChecked ? regions.slice() : [];
-            
+
             // Call the filter function using the updated selected regions
             filterData();
         });
@@ -120,18 +124,18 @@ function createFilters(data, containerId) {
         const checkboxRow = checkboxContainer.append('div')
             .style('display', 'flex')
             .style('align-items', 'center')
-            .style('height', (height / regions.length) + 'px');
+            .style('height', '1px');
 
         // Add the region checkbox
         checkboxRow.append('input')
             .attr('type', 'checkbox')
             .attr('class', 'region-checkbox')  // Add class to easily select all region checkboxes
             .attr('checked', true)  // All checked by default
-            .style('transform', "scale(" + height / 125 + ")")
-            .on('change', function() {
+            .style('transform', "scale(" + height / 350 + ")")
+            .on('change', function () {
                 // Update the selected regions array
                 selectedRegions = [];
-                checkboxContainer.selectAll('input.region-checkbox').each(function() {
+                checkboxContainer.selectAll('input.region-checkbox').each(function () {
                     if (d3.select(this).property('checked')) {
                         selectedRegions.push(d3.select(this.nextSibling).text());
                     }
@@ -140,7 +144,7 @@ function createFilters(data, containerId) {
                 // If all region checkboxes are checked, also check "Select All"
                 // If not all are checked, uncheck "Select All"
                 const allChecked = checkboxContainer.selectAll('input.region-checkbox')
-                    .filter(function() { return !d3.select(this).property('checked'); }).empty();
+                    .filter(function () { return !d3.select(this).property('checked'); }).empty();
                 selectAllCheckbox.property('checked', allChecked);
 
                 // Call the filter function using the updated selected regions
@@ -150,6 +154,7 @@ function createFilters(data, containerId) {
         // Add the label for the region checkbox
         checkboxRow.append('span')
             .style('font-family', 'Arial')
+            .style('font-size', "14px")
             .style('width', (2 * width) + "px")
             .style('text-align', 'left')
             .style('white-space', 'normal')
@@ -167,7 +172,7 @@ function createFilters(data, containerId) {
             .style('margin-left', '20px')
             .on('mouseover', handleMouseOverBar)
             .on('mouseout', handleMouseOutBar);
-            
+
     });
 
     function filterData() {
@@ -188,7 +193,7 @@ function createFilters(data, containerId) {
 
                     const lowerIndex = Math.floor(sortedYearData.length * (filter.leftValue / 100));
                     const upperIndex = Math.ceil(sortedYearData.length * (filter.rightValue / 100));
-        
+
                     return sortedYearData.slice(lowerIndex, upperIndex);
                 });
             } else if (filter.id === 2) {
@@ -287,7 +292,7 @@ function createFilters(data, containerId) {
 
         // Create a drag behavior for the sliders
         const drag = d3.drag()
-            .on('drag', function(event) {
+            .on('drag', function (event) {
                 // Get the current slider being dragged
                 const currentSlider = d3.select(this);
 
