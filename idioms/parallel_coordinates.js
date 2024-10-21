@@ -69,11 +69,15 @@ function createParallelCoordinates(initialData, containerId) {
     }
 
     // Function to get the color scale based on the population attribute
-    const totalPopulationByRegion = calculateTotalPopulationByRegion(data);
-    console.log(totalPopulationByRegion)
+    const totalPopulationByRegion = calculateTotalPopulationByRegion(initialData);
+    console.log(totalPopulationByRegion);
+    const initialPopulationExtent = [
+        d3.min([...totalPopulationByRegion.values()]), 
+        d3.max([...totalPopulationByRegion.values()])
+    ];
     const getColorScale = () => {
         return d3.scaleSequential(d3.interpolateOranges)
-            .domain([d3.min([...totalPopulationByRegion.values()]), d3.max([...totalPopulationByRegion.values()])]); // Set domain to total population range
+            .domain(initialPopulationExtent); // Set domain to initial total population range
     };
     const color = getColorScale();
 
@@ -267,8 +271,11 @@ function createParallelCoordinates(initialData, containerId) {
             .duration(60)
             .attr("d", d => linePath(d))
             .attr("stroke", d => {
-                const regionPopulation = totalPopulationByRegion.get(d.region); // Get total population for the region
-                return color(regionPopulation); // Color based on total population
+                if (selectedCountry && d.country === selectedCountry) {
+                    return "#FF0000"; // Red color for selected country
+                }
+                const regionPopulation = totalPopulationByRegion.get(d.region);
+                return color(regionPopulation);
             })
             .attr("stroke-width", d => selectedCountry && d.country === selectedCountry ? 2 : 1)
             .attr("opacity", d => {
@@ -316,7 +323,12 @@ function createParallelCoordinates(initialData, containerId) {
                 hoveredData = null;
                 d3.select(this)
                     .attr("stroke-width", selectedCountry && d.country === selectedCountry ? 2 : 1)
-                    .attr("stroke", selectedCountry && d.country === selectedCountry ? "#8B0000" : color(totalPopulationByRegion.get(d.region)))
+                    .attr("stroke", () => {
+                        if (selectedCountry && d.country === selectedCountry) {
+                            return "#FF0000"; // Keep selected country red
+                        }
+                        return color(totalPopulationByRegion.get(d.region));
+                    })
                     .attr("opacity", () => {
                         if (selectedCountry) {
                             return d.country === selectedCountry ? 1 : 0.1;
@@ -391,10 +403,8 @@ function createParallelCoordinates(initialData, containerId) {
     // **Legend Setup**
     // -------------------
     function createStaticLegend(data, width, height) {
-        // Calculate total population by region
-        const totalPopulationByRegion = calculateTotalPopulationByRegion(data);
-        const populationValues = [...totalPopulationByRegion.values()]; // Get population values as an array
-        const extent = d3.extent(populationValues); // Calculate the extent of the population values
+        // Use the initial population extent for the legend
+        const extent = initialPopulationExtent;
     
         const legendWidth = width * 0.025;
         const legendHeight = height * 0.55;
@@ -403,7 +413,7 @@ function createParallelCoordinates(initialData, containerId) {
             .attr("class", "parallel-coordinates-legend")
             .attr("transform", `translate(${width + margin.right - legendWidth * 4.5}, ${height * 0.25})`);
     
-        // Use the total population by region for the color scale
+        // Use the initial population extent for the color scale in the gradient
         const legendScale = d3.scaleLinear()
             .domain(extent)
             .range([legendHeight, 0]);
@@ -427,7 +437,7 @@ function createParallelCoordinates(initialData, containerId) {
             .enter()
             .append("stop")
             .attr("offset", d => d * 100 + "%")
-            .attr("stop-color", d => color(d3.interpolateNumber(extent[0], extent[1])(d))); // Using the existing color function
+            .attr("stop-color", d => color(d3.interpolateNumber(extent[0], extent[1])(d)));
     
         // Create rectangle for the gradient
         legend.append("rect")
@@ -499,9 +509,8 @@ function createParallelCoordinates(initialData, containerId) {
         // Update scales
         updateScales(data);
 
-        // Update color scale (remains bound to happiness_score)
-        // No need to update as colorKey is fixed
-    
+        // No need to update color scale as it's now static
+
         // Update legend
         svg.selectAll(".parallel-coordinates-legend").remove();
         createStaticLegend(data, width, height);
