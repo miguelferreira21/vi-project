@@ -309,6 +309,7 @@ function createParallelCoordinates(initialData, containerId) {
                     <strong>${d.country}</strong><br/>
                     Region: ${d.region}<br/>
                     Happiness Score: ${d.happiness_score.toFixed(2)}<br/>
+                    Regional Population: ${d.population.toFixed(0)}<br/>
                     <!-- Add more fields as necessary -->
                 `)
                     .style("left", (event.pageX + 10) + "px")
