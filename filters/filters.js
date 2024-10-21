@@ -70,6 +70,7 @@ function createFilters(data, containerId) {
         .style('display', 'flex')
         .style('flex-direction', 'column')
         .style('margin-top', '10px')
+        .style('gap', height / 5 + "px")
         .style('max-height', `${containerHeight - 20}px`) // Adjust max height
         .style('width', '100%')
         .style('overflow-y', 'auto') // Enable scrolling if content overflows
@@ -85,10 +86,11 @@ function createFilters(data, containerId) {
     const selectAllRow = checkboxContainer.append('div')
         .style('display', 'flex')
         .style('align-items', 'center')
-        .style('gap', '-10px');
+        .style('height', (height / regions.length) + 'px');
 
     // Add the "Select All" checkbox
     const selectAllCheckbox = selectAllRow.append('input')
+        .style('transform', "scale(" + height / 125 + ")")
         .attr('type', 'checkbox')
         .attr('checked', true)  // All checked by default
         .on('change', function() {
@@ -118,7 +120,6 @@ function createFilters(data, containerId) {
         const checkboxRow = checkboxContainer.append('div')
             .style('display', 'flex')
             .style('align-items', 'center')
-            .style('gap', '-10px')
             .style('height', (height / regions.length) + 'px');
 
         // Add the region checkbox
@@ -126,6 +127,7 @@ function createFilters(data, containerId) {
             .attr('type', 'checkbox')
             .attr('class', 'region-checkbox')  // Add class to easily select all region checkboxes
             .attr('checked', true)  // All checked by default
+            .style('transform', "scale(" + height / 125 + ")")
             .on('change', function() {
                 // Update the selected regions array
                 selectedRegions = [];
@@ -148,7 +150,7 @@ function createFilters(data, containerId) {
         // Add the label for the region checkbox
         checkboxRow.append('span')
             .style('font-family', 'Arial')
-            .style('width', (1.5 * width) + "px")
+            .style('width', (2 * width) + "px")
             .style('text-align', 'left')
             .style('white-space', 'normal')
             .text(region);
