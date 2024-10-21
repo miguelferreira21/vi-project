@@ -105,13 +105,11 @@
 
 /* Style for axis labels */
 .axis text {
-    font-size: 12px; /* Increase as needed */
-    font-weight: bold; /* Make labels bold */
+    font-size: 12px; 
     fill: black; /* Contrast color */
     paint-order: stroke; /* Ensures text outlines are rendered */
     stroke: white; /* Adds a white outline to text for better contrast */
     stroke-width: 0.5px;
-    /* Removed pointer-events: none to allow clicking on titles */
 }
 
 /* Enhance visual feedback for selected lines */
