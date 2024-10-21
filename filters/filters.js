@@ -47,13 +47,13 @@ function createFilters(data, containerId) {
     const container = d3.select(containerId)
         .style('display', 'flex')
         .style('flex-direction', 'row')
-        .style('gap', '10px'); // Space between slidebars and checkbox column
+        .style('gap', (width * 0.25) + "px"); // Space between slidebars and checkbox column
 
     // Create a container for the slidebars
     const slidersContainer = container.append('div')
         .style('display', 'flex')
         .style('flex-direction', 'column')
-        .style('gap', '20px')
+        .style('gap', (height * 0.25) + "px")
         .style('margin-top', '10px');
 
     // Create a region filter with checkboxes
@@ -94,7 +94,7 @@ function createFilters(data, containerId) {
     // Add the label for "Select All"
     selectAllRow.append('span')
     .style('font-family', 'Arial')
-    .style('width', '300px')
+    .style('width', (width * 0.9) + "px")
     .style('text-align', 'left')
     .style('white-space', 'normal')
     .text('Select All');
@@ -133,7 +133,7 @@ function createFilters(data, containerId) {
     // Add the label for the region checkbox
     checkboxRow.append('span')
         .style('font-family', 'Arial')
-        .style('width', '300px')
+        .style('width', (1.5 * width) + "px")
         .style('text-align', 'left')
         .style('white-space', 'normal')
         .text(region);
@@ -344,6 +344,7 @@ function handleMouseOverBar(event, avgHappiness) {
         .style('opacity', 1)
         .style('left', `${event.pageX + 10}px`)
         .style('top', `${event.pageY - 20}px`)
+        .style('font-family', 'Arial')
         .html(`Average Happiness: ${avgHappiness}`);
 }
 
