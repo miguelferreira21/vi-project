@@ -3,9 +3,13 @@ let selectedRegions = []; // Track selected regions
 
 function createFilters(data, containerId) {
     // Set up the dimensions
-    const margin = { top: 20, right: 30, bottom: 50, left: 10 };
-    const width = d3.select(containerId).node().clientWidth * 0.25;
-    const height = d3.select(containerId).node().clientHeight *0.5;
+    const margin = { top: 20, right: 30, bottom: 50, left: 30 };
+    const containerWidth = d3.select(containerId).node().clientWidth;
+    const containerHeight = d3.select(containerId).node().clientHeight;
+
+    // Calculate width and height based on container dimensions
+    const width = containerWidth * 0.25 - margin.left - margin.right;
+    const height = containerHeight - margin.top - margin.bottom; // Full height minus margins
     const lineThickness = 2;
 
     // Convert values to numbers
@@ -47,20 +51,30 @@ function createFilters(data, containerId) {
     const container = d3.select(containerId)
         .style('display', 'flex')
         .style('flex-direction', 'row')
-        .style('gap', (width * 0.25) + "px"); // Space between slidebars and checkbox column
+        .style('gap', "20px") // Fixed gap to prevent excessive spacing
+        .style('height', `${containerHeight}px`) // Ensure container has defined height
+        .style('overflow', 'hidden'); // Prevent overflow
 
-    // Create a container for the slidebars
+    // Create a container for the sliders
     const slidersContainer = container.append('div')
         .style('display', 'flex')
         .style('flex-direction', 'column')
-        .style('gap', (height * 0.25) + "px")
-        .style('margin-top', '10px');
+        .style('gap', "20px")
+        .style('margin-top', '10px')
+        .style('margin-left', '40px')  // Add left margin to move sliders to the right
+        .style('flex', '1 1 auto')
+        .style('height', '100%');
 
     // Create a region filter with checkboxes
     const checkboxContainer = container.append('div')
         .style('display', 'flex')
         .style('flex-direction', 'column')
-        .style('margin-top', '10px');
+        .style('margin-top', '10px')
+        .style('max-height', `${containerHeight - 20}px`) // Adjust max height
+        .style('width', '100%')
+        .style('overflow-y', 'auto') // Enable scrolling if content overflows
+        .style('flex', '0 0 auto') // Prevent flex from resizing
+        .style('padding', '10px'); // Add some inner spacing
 
     // Scale for average happiness bars
     const xScale = d3.scaleLinear()
@@ -69,87 +83,89 @@ function createFilters(data, containerId) {
 
     // Create a "Select All" checkbox
     const selectAllRow = checkboxContainer.append('div')
-    .style('display', 'flex')
-    .style('align-items', 'center')
-    .style('gap', '-10px');
-
-    // Add the "Select All" checkbox
-    const selectAllCheckbox = selectAllRow.append('input')
-    .attr('type', 'checkbox')
-    .attr('checked', true)  // All checked by default
-    .on('change', function() {
-        const isChecked = d3.select(this).property('checked');
-        
-        // Set all region checkboxes to the state of the "Select All" checkbox
-        checkboxContainer.selectAll('input.region-checkbox')
-            .property('checked', isChecked);
-        
-        // Update selectedRegions based on the current state
-        selectedRegions = isChecked ? regions.slice() : [];
-        
-        // Call the filter function using the updated selected regions
-        filterData();
-    });
-
-    // Add the label for "Select All"
-    selectAllRow.append('span')
-    .style('font-family', 'Arial')
-    .style('width', (width * 0.9) + "px")
-    .style('text-align', 'left')
-    .style('white-space', 'normal')
-    .text('Select All');
-
-    // Create checkboxes for each region
-    regions.forEach(region => {
-    const checkboxRow = checkboxContainer.append('div')
         .style('display', 'flex')
         .style('align-items', 'center')
         .style('gap', '-10px');
 
-    // Add the region checkbox
-    checkboxRow.append('input')
+    // Add the "Select All" checkbox
+    const selectAllCheckbox = selectAllRow.append('input')
         .attr('type', 'checkbox')
-        .attr('class', 'region-checkbox')  // Add class to easily select all region checkboxes
         .attr('checked', true)  // All checked by default
         .on('change', function() {
-            // Update the selected regions array
-            selectedRegions = [];
-            checkboxContainer.selectAll('input.region-checkbox').each(function() {
-                if (d3.select(this).property('checked')) {
-                    selectedRegions.push(d3.select(this.nextSibling).text());
-                }
-            });
-
-            // If all region checkboxes are checked, also check "Select All"
-            // If not all are checked, uncheck "Select All"
-            const allChecked = checkboxContainer.selectAll('input.region-checkbox')
-                .filter(function() { return !d3.select(this).property('checked'); }).empty();
-            selectAllCheckbox.property('checked', allChecked);
-
+            const isChecked = d3.select(this).property('checked');
+            
+            // Set all region checkboxes to the state of the "Select All" checkbox
+            checkboxContainer.selectAll('input.region-checkbox')
+                .property('checked', isChecked);
+            
+            // Update selectedRegions based on the current state
+            selectedRegions = isChecked ? regions.slice() : [];
+            
             // Call the filter function using the updated selected regions
             filterData();
         });
 
-    // Add the label for the region checkbox
-    checkboxRow.append('span')
+    // Add the label for "Select All"
+    selectAllRow.append('span')
         .style('font-family', 'Arial')
-        .style('width', (1.5 * width) + "px")
+        .style('width', (width * 0.9) + "px")
         .style('text-align', 'left')
         .style('white-space', 'normal')
-        .text(region);
+        .text('Select All');
 
-    // Find the average happiness score for this region
-    const avgHappiness = avgHappinessScores.find(d => d.region === region)?.averageHappiness || 0;
+    // Create checkboxes for each region
+    regions.forEach(region => {
+        const checkboxRow = checkboxContainer.append('div')
+            .style('display', 'flex')
+            .style('align-items', 'center')
+            .style('gap', '-10px')
+            .style('height', (height / regions.length) + 'px');
 
-    // Add the bar for the average happiness next to the checkbox
-    checkboxRow.append('div')
-        .datum(avgHappiness.toFixed(2))
-        .style('width', `${xScale(avgHappiness)}px`)
-        .style('height', '10px')  // Adjust the height of the bar as needed
-        .style('background-color', 'steelblue')
-        .style('margin-left', '20px')
-        .on('mouseover', handleMouseOverBar)
-        .on('mouseout', handleMouseOutBar);
+        // Add the region checkbox
+        checkboxRow.append('input')
+            .attr('type', 'checkbox')
+            .attr('class', 'region-checkbox')  // Add class to easily select all region checkboxes
+            .attr('checked', true)  // All checked by default
+            .on('change', function() {
+                // Update the selected regions array
+                selectedRegions = [];
+                checkboxContainer.selectAll('input.region-checkbox').each(function() {
+                    if (d3.select(this).property('checked')) {
+                        selectedRegions.push(d3.select(this.nextSibling).text());
+                    }
+                });
+
+                // If all region checkboxes are checked, also check "Select All"
+                // If not all are checked, uncheck "Select All"
+                const allChecked = checkboxContainer.selectAll('input.region-checkbox')
+                    .filter(function() { return !d3.select(this).property('checked'); }).empty();
+                selectAllCheckbox.property('checked', allChecked);
+
+                // Call the filter function using the updated selected regions
+                filterData();
+            });
+
+        // Add the label for the region checkbox
+        checkboxRow.append('span')
+            .style('font-family', 'Arial')
+            .style('width', (1.5 * width) + "px")
+            .style('text-align', 'left')
+            .style('white-space', 'normal')
+            .text(region);
+
+        // Find the average happiness score for this region
+        const avgHappiness = avgHappinessScores.find(d => d.region === region)?.averageHappiness || 0;
+
+        // Add the bar for the average happiness next to the checkbox
+        checkboxRow.append('div')
+            .datum(avgHappiness.toFixed(2))
+            .style('width', `${xScale(avgHappiness)}px`)
+            .style('height', '10px')  // Adjust the height of the bar as needed
+            .style('background-color', 'steelblue')
+            .style('margin-left', '20px')
+            .on('mouseover', handleMouseOverBar)
+            .on('mouseout', handleMouseOutBar);
+            
     });
 
     function filterData() {
@@ -199,16 +215,19 @@ function createFilters(data, containerId) {
         }
     }
 
-    // Create SVG elements for each slidebar's bar
+    // Create SVG elements for each slider's bar
     filtersData.forEach(filter => {
+        const svgHeight = (height - margin.top - margin.bottom - (filtersData.length - 1) * 20) / filtersData.length; // Distribute height evenly with gaps
         const svg = slidersContainer.append('svg')
             .attr('width', width + margin.left + margin.right)
-            .attr('height', height);
+            .attr('height', svgHeight + margin.top + margin.bottom)
+            .attr('viewBox', `0 0 ${width + margin.left + margin.right} ${svgHeight + margin.top + margin.bottom}`)
+            .style('max-height', `${svgHeight + margin.top + margin.bottom}px`); // Ensure SVG respects height
 
-        // Create a title above each slidebar's bar
+        // Create a title above each slider's bar
         svg.append('text')
-            .attr('x', width / 2 + margin.left)
-            .attr('y', margin.top)
+            .attr('x', (width + margin.left + margin.right) / 2)
+            .attr('y', margin.top / 2)
             .attr('text-anchor', 'middle')
             .attr('font-size', '14px')
             .style("font-family", "Arial")
@@ -216,12 +235,12 @@ function createFilters(data, containerId) {
 
         // Create a group element to hold the bar and slider
         const g = svg.append('g')
-            .attr('transform', `translate(${margin.left}, ${height / 2})`);
+            .attr('transform', `translate(${margin.left}, ${svgHeight / 2 + margin.top})`);
 
         // Create a thin line as the slider track
         g.append('line')
-            .attr('x1', width * 0.2)
-            .attr('x2', width * 0.8)
+            .attr('x1', 0)
+            .attr('x2', width)
             .attr('y1', 0)
             .attr('y2', 0)
             .attr('stroke', '#ddd')
@@ -229,95 +248,98 @@ function createFilters(data, containerId) {
 
         // Add filter's start value
         g.append('text')
-            .attr('x', width * 0.2 - 10)
+            .attr('x', -20)  // Move start label slightly more to the left
             .attr('y', 5)
             .attr('text-anchor', 'end')
             .style("font-family", "Arial")
-            .style("font-size", "14px")
+            .style("font-size", "12px")
             .text(filter.start);
 
         // Add filter's end value
         g.append('text')
-            .attr('x', width * 0.8 + 10)
+            .attr('x', width + 20)  // Move end label slightly more to the right
             .attr('y', 5)
             .attr('text-anchor', 'start')
             .style("font-family", "Arial")
-            .style("font-size", "14px")
+            .style("font-size", "12px")
             .text(filter.finish);
 
-        // Create a tooltip div
-        d3.select("body").append("div")
-            .attr("id", "filter_tooltip")
-            .style("opacity", 0)
-            .style("position", "absolute")
-            .style("background", "lightsteelblue")
-            .style("padding", "5px")
-            .style("font-family", "Arial")
-            .style("font-size", "14px")
-            .style("border-radius", "5px")
-            .style("pointer-events", "none");
+        // Create a tooltip div (ensure it's only created once)
+        if (d3.select("#filter_tooltip").empty()) {
+            d3.select("body").append("div")
+                .attr("id", "filter_tooltip")
+                .style("opacity", 0)
+                .style("position", "absolute")
+                .style("background", "lightsteelblue")
+                .style("padding", "5px")
+                .style("font-family", "Arial")
+                .style("font-size", "14px")
+                .style("border-radius", "5px")
+                .style("pointer-events", "none");
+        }
 
         // Calculate the scale for mapping slider position to values
         const scale = d3.scaleLinear()
-            .domain([width * 0.2, width * 0.8])
+            .domain([0, width])
             .range([filter.start, filter.finish]);
 
         // Create a drag behavior for the sliders
         const drag = d3.drag()
-        .on('drag', function(event) {
-            // Get the current slider being dragged
-            const currentSlider = d3.select(this);
-            
-            // Get the current positions of both sliders
-            const leftCx = parseFloat(leftSlider.attr('cx'));
-            const rightCx = parseFloat(rightSlider.attr('cx'));
+            .on('drag', function(event) {
+                // Get the current slider being dragged
+                const currentSlider = d3.select(this);
 
-            // Calculate the new x position based on the drag
-            let newCx = Math.max(width * 0.2, Math.min(width * 0.8, event.x));
+                // Get the current positions of both sliders
+                const leftCx = parseFloat(leftSlider.attr('cx'));
+                const rightCx = parseFloat(rightSlider.attr('cx'));
 
-            // Determine if dragging the left or right slider
-            if (currentSlider.attr('cx') === leftCx.toString()) {
-                // Left slider dragged
-                // Prevent left slider from going beyond the right slider
-                newCx = Math.min(newCx, rightCx - 6); // Subtract radius to prevent overlap
-                filter.leftValue = scale(newCx);
-            } else {
-                // Right slider dragged
-                // Prevent right slider from going before the left slider
-                newCx = Math.max(newCx, leftCx + 6); // Add radius to prevent overlap
-                filter.rightValue = scale(newCx);
-            }
+                // Calculate the new x position based on the drag
+                let newCx = Math.max(0, Math.min(width, event.x));
 
-            // Update the position of the currently dragged slider
-            currentSlider.attr('cx', newCx);
+                // Determine if dragging the left or right slider
+                if (currentSlider.attr('data-type') === 'left') {
+                    // Left slider dragged
+                    // Prevent left slider from going beyond the right slider
+                    newCx = Math.min(newCx, rightCx - 6); // Subtract radius to prevent overlap
+                    filter.leftValue = scale(newCx);
+                } else {
+                    // Right slider dragged
+                    // Prevent right slider from going before the left slider
+                    newCx = Math.max(newCx, leftCx + 6); // Add radius to prevent overlap
+                    filter.rightValue = scale(newCx);
+                }
 
-            // Update data
-            filterData();
-        });
+                // Update the position of the currently dragged slider
+                currentSlider.attr('cx', newCx);
 
-    // Create the right slider
-    const rightSlider = g.append('circle')
-        .attr('cx', width * 0.8)
-        .attr('cy', 0)
-        .attr('r', 6)
-        .attr('fill', '#333')
-        .style('cursor', 'pointer')
-        .call(drag)
-        .on('mouseover', (event) => handleMouseOverFilter(event, filter.rightValue))
-        .on('mouseout', handleMouseOutFilter);
+                // Update data
+                filterData();
+            });
 
-    // Create the left slider
-    const leftSlider = g.append('circle')
-        .attr('cx', width * 0.2)
-        .attr('cy', 0)
-        .attr('r', 6)
-        .attr('fill', '#333')
-        .style('cursor', 'pointer')
-        .call(drag)
-        .on('mouseover', (event) => handleMouseOverFilter(event, filter.leftValue))
-        .on('mouseout', handleMouseOutFilter);
+        // Create the right slider
+        const rightSlider = g.append('circle')
+            .attr('cx', width)
+            .attr('cy', 0)
+            .attr('r', 6)
+            .attr('fill', '#333')
+            .attr('data-type', 'right') // Add data attribute to identify slider type
+            .style('cursor', 'pointer')
+            .call(drag)
+            .on('mouseover', (event) => handleMouseOverFilter(event, filter.rightValue))
+            .on('mouseout', handleMouseOutFilter);
 
-        });
+        // Create the left slider
+        const leftSlider = g.append('circle')
+            .attr('cx', 0)
+            .attr('cy', 0)
+            .attr('r', 6)
+            .attr('fill', '#333')
+            .attr('data-type', 'left') // Add data attribute to identify slider type
+            .style('cursor', 'pointer')
+            .call(drag)
+            .on('mouseover', (event) => handleMouseOverFilter(event, filter.leftValue))
+            .on('mouseout', handleMouseOutFilter);
+    });
 
     // Initial data filter
     filterData();
