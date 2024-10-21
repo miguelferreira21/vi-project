@@ -1,12 +1,11 @@
-let filteredData;
-let regions = [];
+let regions = []; // Stores all the regions
 let selectedRegions = []; // Track selected regions
 
 function createFilters(data, containerId) {
     // Set up the dimensions
-    const margin = { top: 20, right: 30, bottom: 50, left: 0 }; // Added right margin for checkboxes
-    const width = 400; // Set a fixed width for the slidebars
-    const height = window.innerHeight / 10; // Keep the height of the slidebars
+    const margin = { top: 20, right: 30, bottom: 50, left: 10 };
+    const width = d3.select(containerId).node().clientWidth * 0.25;
+    const height = d3.select(containerId).node().clientHeight *0.5;
     const lineThickness = 2;
 
     // Convert values to numbers
@@ -17,7 +16,7 @@ function createFilters(data, containerId) {
         d.year = +d.year;
     });
 
-    // Get unique regions and add 'All' at the beginning
+    // Save all the regions
     regions = [...new Set(data.map(d => d.region))];
     selectedRegions = regions;
 
@@ -31,10 +30,11 @@ function createFilters(data, containerId) {
         };
     });
     
-    const minTemp = d3.min(data.filter(d => +d.temperature !== -999.0), d => +d.temperature);
-    const maxTemp = d3.max(data, d => d.temperature);
-    const minFert = 0;
-    const maxFert = d3.max(data, d => d.fertility_rate);
+    // Min and max values for temperature and fertility
+    const minTemp = d3.min(data.filter(d => +d.temperature !== -999.0), d => +d.temperature).toFixed(2);
+    const maxTemp = d3.max(data, d => d.temperature).toFixed(2);
+    const minFert = d3.min(data.filter(d => +d.fertility_rate !== -999.0), d => +d.fertility_rate).toFixed(2);
+    const maxFert = d3.max(data, d => d.fertility_rate).toFixed(2);
 
     // Data for three bars
     const filtersData = [
@@ -46,7 +46,7 @@ function createFilters(data, containerId) {
     // Select the container
     const container = d3.select(containerId)
         .style('display', 'flex')
-        .style('flex-direction', 'row') // Arrange slidebars and checkboxes horizontally
+        .style('flex-direction', 'row')
         .style('gap', '10px'); // Space between slidebars and checkbox column
 
     // Create a container for the slidebars
@@ -54,73 +54,118 @@ function createFilters(data, containerId) {
         .style('display', 'flex')
         .style('flex-direction', 'column')
         .style('gap', '20px')
-        .style('margin-top', '20px');
+        .style('margin-top', '10px');
 
     // Create a region filter with checkboxes
     const checkboxContainer = container.append('div')
         .style('display', 'flex')
         .style('flex-direction', 'column')
-        .style('gap', '5px');
+        .style('margin-top', '10px');
 
-    const chartWidth = 100; // Set desired width for the bars
+    // Scale for average happiness bars
     const xScale = d3.scaleLinear()
         .domain([0, d3.max(avgHappinessScores, d => d.averageHappiness)])
-        .range([0, chartWidth]);
+        .range([0, 100]);
+
+    // Create a "Select All" checkbox
+    const selectAllRow = checkboxContainer.append('div')
+    .style('display', 'flex')
+    .style('align-items', 'center')
+    .style('gap', '-10px');
+
+    // Add the "Select All" checkbox
+    const selectAllCheckbox = selectAllRow.append('input')
+    .attr('type', 'checkbox')
+    .attr('checked', true)  // All checked by default
+    .on('change', function() {
+        const isChecked = d3.select(this).property('checked');
+        
+        // Set all region checkboxes to the state of the "Select All" checkbox
+        checkboxContainer.selectAll('input.region-checkbox')
+            .property('checked', isChecked);
+        
+        // Update selectedRegions based on the current state
+        selectedRegions = isChecked ? regions.slice() : [];
+        
+        // Call the filter function using the updated selected regions
+        filterData();
+    });
+
+    // Add the label for "Select All"
+    selectAllRow.append('span')
+    .style('font-family', 'Arial')
+    .style('width', '300px')
+    .style('text-align', 'left')
+    .style('white-space', 'normal')
+    .text('Select All');
 
     // Create checkboxes for each region
     regions.forEach(region => {
-        const checkboxRow = checkboxContainer.append('div')
-            .style('display', 'flex')
-            .style('align-items', 'center')
-            .style('gap', '-10px');
-    
-        // Add the checkbox
-        checkboxRow.append('input')
-            .attr('type', 'checkbox')
-            .attr('checked', true) // All checked by default
-            .on('change', function() {
-                // Update the filter based on selected regions
-                selectedRegions = [];
-                checkboxContainer.selectAll('input').each(function() {
-                    if (d3.select(this).property('checked')) {
-                        selectedRegions.push(d3.select(this.nextSibling).text());
-                    }
-                });
-    
-                // Call the filter function using the selected regions
-                filterData();
+    const checkboxRow = checkboxContainer.append('div')
+        .style('display', 'flex')
+        .style('align-items', 'center')
+        .style('gap', '-10px');
+
+    // Add the region checkbox
+    checkboxRow.append('input')
+        .attr('type', 'checkbox')
+        .attr('class', 'region-checkbox')  // Add class to easily select all region checkboxes
+        .attr('checked', true)  // All checked by default
+        .on('change', function() {
+            // Update the selected regions array
+            selectedRegions = [];
+            checkboxContainer.selectAll('input.region-checkbox').each(function() {
+                if (d3.select(this).property('checked')) {
+                    selectedRegions.push(d3.select(this.nextSibling).text());
+                }
             });
-    
-        // Add the label for the checkbox
-        checkboxRow.append('span')
-            .style('font-family', 'Arial')
-            .style('width', '300px')
-            .style('text-align', 'left')
-            .style('white-space', 'normal')
-            .text(region);
-    
-        // Find the average happiness score for this region
-        const avgHappiness = avgHappinessScores.find(d => d.region === region)?.averageHappiness || 0;
-    
-        // Add the bar for the average happiness next to the checkbox
-        checkboxRow.append('div')
-            .style('width', `${xScale(avgHappiness)}px`)
-            .style('height', '10px') // Adjust the height of the bar as needed
-            .style('background-color', 'steelblue')
-            .style('margin-left', '20px');
+
+            // If all region checkboxes are checked, also check "Select All"
+            // If not all are checked, uncheck "Select All"
+            const allChecked = checkboxContainer.selectAll('input.region-checkbox')
+                .filter(function() { return !d3.select(this).property('checked'); }).empty();
+            selectAllCheckbox.property('checked', allChecked);
+
+            // Call the filter function using the updated selected regions
+            filterData();
+        });
+
+    // Add the label for the region checkbox
+    checkboxRow.append('span')
+        .style('font-family', 'Arial')
+        .style('width', '300px')
+        .style('text-align', 'left')
+        .style('white-space', 'normal')
+        .text(region);
+
+    // Find the average happiness score for this region
+    const avgHappiness = avgHappinessScores.find(d => d.region === region)?.averageHappiness || 0;
+
+    // Add the bar for the average happiness next to the checkbox
+    checkboxRow.append('div')
+        .datum(avgHappiness.toFixed(2))
+        .style('width', `${xScale(avgHappiness)}px`)
+        .style('height', '10px')  // Adjust the height of the bar as needed
+        .style('background-color', 'steelblue')
+        .style('margin-left', '20px')
+        .on('mouseover', handleMouseOverBar)
+        .on('mouseout', handleMouseOutBar);
     });
 
     function filterData() {
-        // If no region is selected, filter by all
-        let tempFilteredData = data.filter(d => selectedRegions.includes(d.region));
+        // True if filters aren't used
+        let allAtMax = true;
+
+        // Filter data only by selected regions
+        let filteredData = data.filter(d => selectedRegions.includes(d.region));
 
         // Apply other filters
         filtersData.forEach(filter => {
             if (filter.id === 1) {
                 // Top happiest countries filter
-                const years = [...new Set(tempFilteredData.map(d => d.year))];
-                tempFilteredData = years.flatMap(year => {
-                    const yearData = tempFilteredData.filter(d => d.year === year);
+                const years = [...new Set(filteredData.map(d => d.year))];
+                filteredData = years.flatMap(year => {
+                    const yearData = filteredData.filter(d => d.year === year);
                     const sortedYearData = yearData.sort((a, b) => b.happiness_score - a.happiness_score);
 
                     const lowerIndex = Math.floor(sortedYearData.length * (filter.leftValue / 100));
@@ -130,30 +175,37 @@ function createFilters(data, containerId) {
                 });
             } else if (filter.id === 2) {
                 // Temperature filter
-                tempFilteredData = tempFilteredData.filter(d =>
+                filteredData = filteredData.filter(d =>
                     (filter.value === filter.finish) ?
                         (d.temperature >= filter.leftValue && d.temperature <= filter.rightValue) :
                         (d.temperature >= filter.leftValue && d.temperature <= filter.rightValue && d.temperature !== -999.0)
                 );
             } else if (filter.id === 3) {
                 // Fertility rate filter
-                tempFilteredData = tempFilteredData.filter(d =>
+                filteredData = filteredData.filter(d =>
                     d.fertility_rate >= filter.leftValue && d.fertility_rate <= filter.rightValue
                 );
             }
+
+            allAtMax = allAtMax && filter.rightValue === filter.finish && filter.leftValue == filter.start;
         });
 
-        filteredData = tempFilteredData;
-        LinkedCharts.publish('dataUpdate', filteredData);
+        // If filters aren't used and all countries are selected
+        // Keep the original data
+        if (allAtMax && selectedRegions.length === regions.length) {
+            LinkedCharts.publish('dataUpdate', data);
+        } else {
+            LinkedCharts.publish('dataUpdate', filteredData);
+        }
     }
 
-    // Create SVG elements for each bar
+    // Create SVG elements for each slidebar's bar
     filtersData.forEach(filter => {
         const svg = slidersContainer.append('svg')
             .attr('width', width + margin.left + margin.right)
             .attr('height', height);
 
-        // Create a title above each bar
+        // Create a title above each slidebar's bar
         svg.append('text')
             .attr('x', width / 2 + margin.left)
             .attr('y', margin.top)
@@ -164,7 +216,7 @@ function createFilters(data, containerId) {
 
         // Create a group element to hold the bar and slider
         const g = svg.append('g')
-            .attr('transform', `translate(${margin.left},${height / 2})`);
+            .attr('transform', `translate(${margin.left}, ${height / 2})`);
 
         // Create a thin line as the slider track
         g.append('line')
@@ -175,7 +227,7 @@ function createFilters(data, containerId) {
             .attr('stroke', '#ddd')
             .attr('stroke-width', lineThickness);
 
-        // Add labels for start and finish
+        // Add filter's start value
         g.append('text')
             .attr('x', width * 0.2 - 10)
             .attr('y', 5)
@@ -184,6 +236,7 @@ function createFilters(data, containerId) {
             .style("font-size", "14px")
             .text(filter.start);
 
+        // Add filter's end value
         g.append('text')
             .attr('x', width * 0.8 + 10)
             .attr('y', 5)
@@ -209,7 +262,7 @@ function createFilters(data, containerId) {
             .domain([width * 0.2, width * 0.8])
             .range([filter.start, filter.finish]);
 
-        // Create a drag behavior for the slider
+        // Create a drag behavior for the sliders
         const drag = d3.drag()
         .on('drag', function(event) {
             // Get the current slider being dragged
@@ -281,4 +334,21 @@ function handleMouseOverFilter(event, d) {
 function handleMouseOutFilter() {
     d3.select("#filter_tooltip")
         .style("opacity", 0);
+}
+
+// Function to handle mouseover and display tooltip
+function handleMouseOverBar(event, avgHappiness) {
+    // You can access avgHappiness directly here
+    const tooltip = d3.select('#tooltip');  // Assuming you have a tooltip element
+    tooltip
+        .style('opacity', 1)
+        .style('left', `${event.pageX + 10}px`)
+        .style('top', `${event.pageY - 20}px`)
+        .html(`Average Happiness: ${avgHappiness}`);
+}
+
+// Function to handle mouseout and hide tooltip
+function handleMouseOutBar() {
+    const tooltip = d3.select('#tooltip');  // Assuming you have a tooltip element
+    tooltip.style('opacity', 0);
 }
