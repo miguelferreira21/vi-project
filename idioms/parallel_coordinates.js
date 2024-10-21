@@ -76,8 +76,9 @@ function createParallelCoordinates(initialData, containerId) {
         d3.max([...totalPopulationByRegion.values()])
     ];
     const getColorScale = () => {
-        return d3.scaleSequential(d3.interpolateOranges)
-            .domain(initialPopulationExtent); // Set domain to initial total population range
+        return d3.scaleSequential()
+            .domain(initialPopulationExtent)
+            .interpolator(d3.interpolateRgb("#F0E68C", "#FF4500")); // Khaki to Dark Orange
     };
     const color = getColorScale();
 
@@ -277,17 +278,17 @@ function createParallelCoordinates(initialData, containerId) {
                 const regionPopulation = totalPopulationByRegion.get(d.region);
                 return color(regionPopulation);
             })
-            .attr("stroke-width", d => selectedCountry && d.country === selectedCountry ? 2 : 1)
+            .attr("stroke-width", d => selectedCountry && d.country === selectedCountry ? 2 : 1.5) // Increased minimum stroke width
             .attr("opacity", d => {
                 if (selectedCountry) {
-                    return d.country === selectedCountry ? 1 : 0.1;
+                    return d.country === selectedCountry ? 1 : 0.2; // Increased minimum opacity
                 }
                 if (hoveredData && hoveredData === d) {
                     return 1;
                 } else if (selectedData.has(d)) {
                     return 1;
                 } else {
-                    return 0.1;
+                    return 0.2; // Increased minimum opacity
                 }
             });
 
@@ -364,7 +365,9 @@ function createParallelCoordinates(initialData, containerId) {
                 if (value === -999 || value === undefined) {
                     return [x(key), height]; // Place it at the bottom if value is invalid
                 }
-                return [x(key), y[key](value)];
+                // Clamp the value to the scale's range
+                const yValue = Math.max(y[key].range()[1], Math.min(y[key].range()[0], y[key](value)));
+                return [x(key), yValue];
             })
         );
     }
@@ -510,17 +513,17 @@ function createParallelCoordinates(initialData, containerId) {
         // Update scales
         updateScales(data);
 
+        // Update axes
+        svg.selectAll(".axis")
+            .each(function (d) {
+                d3.select(this).call(d3.axisLeft(y[d]).ticks(5));
+            });
+    
         // No need to update color scale as it's now static
 
         // Update legend
         svg.selectAll(".parallel-coordinates-legend").remove();
         createStaticLegend(data, width, height);
-    
-        // Update axes
-        svg.selectAll(".axis")
-            .each(function (d) {
-                d3.select(this).call(d3.axisLeft().scale(y[d]));
-            });
     
         // Redraw lines
         selectedData = new Set(filterData(data));
@@ -537,7 +540,10 @@ function createParallelCoordinates(initialData, containerId) {
             } else if (key === 'fertility_rate') {
                 y[key].domain([0, d3.max(data, d => +d[key])]);
             } else {
-                y[key].domain(d3.extent(data, d => +d[key]));
+                // Extend the domain slightly beyond the data range
+                const extent = d3.extent(data, d => +d[key]);
+                const padding = (extent[1] - extent[0]) * 0.05; // 5% padding
+                y[key].domain([extent[0] - padding, extent[1] + padding]);
             }
         });
     }
