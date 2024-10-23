@@ -177,7 +177,8 @@ function createRooftopMatrix(data, containerId) {
                 .attr("font-size", "16px")
                 .attr("font-weight", "bold");
         }
-        title.text(selectedCountry ? `Correlations for ${selectedCountry}` : "Global Correlations");
+        title.text(selectedCountry ? `Correlations for ${selectedCountry}` : "Global Correlations")
+            .style("font-size", height*0.05);
     }
 
     // Initial update with all data
