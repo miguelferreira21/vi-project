@@ -121,49 +121,55 @@ function createRooftopMatrix(data, containerId) {
 
         symbols.exit().remove();
 
-        // Handle hover interactions only on cells (not affecting symbols)
-        svg.selectAll("rect")
-        .on("mouseover", function(event, d) {
-            // Highlight the hovered cell
-            d3.select(this)
-                .raise()
-                .style("stroke-width", 3);
-        
-            // Show tooltip
-            tooltip.transition().duration(200).style("opacity", 1);
-            tooltip.html(`Correlation: ${d.value.toFixed(2)}<br>`)
-                .style("left", (event.pageX + 10) + "px")
-                .style("top", (event.pageY - 10) + "px");
-        
-            // Highlight all cells in the same row and column by adding a semi-transparent overlay
-            svg.selectAll("rect.overlay").remove();  // Remove existing overlays first
-        
-            svg.selectAll("rect")
-                .filter(function(rectData) {
-                    return rectData && ((rectData.i === d.i && rectData.j < d.j) || (rectData.j === d.j && rectData.i > d.i));
-                })
-                .each(function() {
-                    // Append a translucent gray rect overlay on top of each filtered cell
-                    d3.select(this.parentNode)
-                        .append("rect")
-                        .attr("class", "overlay")
-                        .attr("x", d3.select(this).attr("x"))
-                        .attr("y", d3.select(this).attr("y"))
-                        .attr("width", d3.select(this).attr("width"))
-                        .attr("height", d3.select(this).attr("height"))
-                        .attr("transform", d3.select(this).attr("transform")) // Apply the same transformation
-                        .style("fill", "rgba(252, 187, 8, 0.5)") // Set the overlay color with 50% opacity
-                        .style("pointer-events", "none");  // Ensure it doesn't interfere with hover events
-                });
-        })
-        .on("mouseout", function(event, d) {
-            // Reset the stroke width and hide the tooltip
-            d3.select(this).style("stroke-width", 1);
-            tooltip.transition().duration(200).style("opacity", 0);
-        
-            // Remove the overlay rectangles
-            svg.selectAll("rect.overlay").remove();
-        });
+        // Handle hover interactions only on cells (not affecting symbols or legend)
+        cellGroup.selectAll("rect")
+            .on("mouseover", function(event, d) {
+                // Check if the hovered rectangle is part of the matrix
+                if (d && d.value !== undefined) {
+                    // Highlight the hovered cell
+                    d3.select(this)
+                        .raise()
+                        .style("stroke-width", 3);
+                
+                    // Show tooltip
+                    tooltip.transition().duration(200).style("opacity", 1);
+                    tooltip.html(`Correlation: ${d.value.toFixed(2)}<br>`)
+                        .style("left", (event.pageX + 10) + "px")
+                        .style("top", (event.pageY - 10) + "px");
+                
+                    // Highlight all cells in the same row and column by adding a semi-transparent overlay
+                    svg.selectAll("rect.overlay").remove();  // Remove existing overlays first
+                
+                    cellGroup.selectAll("rect")
+                        .filter(function(rectData) {
+                            return rectData && ((rectData.i === d.i && rectData.j < d.j) || (rectData.j === d.j && rectData.i > d.i));
+                        })
+                        .each(function() {
+                            // Append a translucent gray rect overlay on top of each filtered cell
+                            d3.select(this.parentNode)
+                                .append("rect")
+                                .attr("class", "overlay")
+                                .attr("x", d3.select(this).attr("x"))
+                                .attr("y", d3.select(this).attr("y"))
+                                .attr("width", d3.select(this).attr("width"))
+                                .attr("height", d3.select(this).attr("height"))
+                                .attr("transform", d3.select(this).attr("transform")) // Apply the same transformation
+                                .style("fill", "rgba(252, 187, 8, 0.5)") // Set the overlay color with 50% opacity
+                                .style("pointer-events", "none");  // Ensure it doesn't interfere with hover events
+                        });
+                }
+            })
+            .on("mouseout", function(event, d) {
+                // Check if the hovered rectangle is part of the matrix
+                if (d && d.value !== undefined) {
+                    // Reset the stroke width and hide the tooltip
+                    d3.select(this).style("stroke-width", 1);
+                    tooltip.transition().duration(200).style("opacity", 0);
+                
+                    // Remove the overlay rectangles
+                    svg.selectAll("rect.overlay").remove();
+                }
+            });
 
         // Add a title to show the selected country (if any)
         let title = svg.select(".matrix-title");
