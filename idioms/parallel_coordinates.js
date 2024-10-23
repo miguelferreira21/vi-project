@@ -1,11 +1,13 @@
 function createParallelCoordinates(initialData, containerId) {
     let data = initialData;
+    let cachedLinePaths = new Map();
     
     const keys = Object.keys(data[0]).filter(d => d !== 'country' && d !== 'year' && d !== 'region');
-    const colorKey = 'population'; // Fixed key for color scale
-    let selectedCountry = null; // Variable to store the selected country
+    const colorKey = 'population';
+    let selectedCountry = null;
+    let averagedData = null;
+    let currentTooltip = null;
 
-    // Replace names in the chart
     const columnNameMap = {
         'happiness_score': 'Happiness Score',
         'healthy_life_expectancy': 'Healthy Life expectancy',
@@ -18,365 +20,200 @@ function createParallelCoordinates(initialData, containerId) {
         'fertility_rate': 'Fertility rate'
     };
 
-    // Function to get the display name for a key
     const getDisplayName = (key) => columnNameMap[key] || key;
-
-    // Initialize the order of axes with data key names
     let displayKeysOrder = keys.filter(key => key !== 'population');
 
     const margin = { top: 20, right: 150, bottom: 30, left: 12 };
     const container = d3.select(containerId);
-    const containerWidth = container.node().clientWidth * 0.995; // Updated dimensioning
-    const containerHeight = container.node().clientHeight * 1.65; // Updated dimensioning
+    const containerWidth = container.node().clientWidth * 0.995;
+    const containerHeight = container.node().clientHeight * 1.65;
     const width = containerWidth - margin.left - margin.right;
     const height = containerHeight - margin.top - margin.bottom;
 
-    let averagedData = calculateAverages(data, keys);
-
-    // Clear the container
-    container.selectAll("*").remove();
-
-    // Create SVG for lines, axes, brushes, and legend
-    const svg = container.append("svg")
-        .attr("width", containerWidth)
-        .attr("height", containerHeight)
-        .style("position", "relative")
-        .append("g")
-        .attr("transform", `translate(${margin.left},${margin.top})`);
-
-    // Initial X Scale
-    let x = d3.scalePoint()
-        .range([0, width])
-        .padding(0.75)
-        .domain(displayKeysOrder);
-
-    // Y Scales
+    let parallelCoordX = d3.scalePoint().range([0, width]).padding(0.75);
     const y = {};
-    for (let key of keys) {
-        if (key === 'temperature') {
-            y[key] = d3.scaleLinear()
-                .domain([d3.min(averagedData.filter(d => +d[key] !== -999.0), d => +d[key]), d3.max(averagedData, d => +d[key])])
-                .range([height, 0]);
-        } else if (key === 'fertility_rate') {
-            y[key] = d3.scaleLinear()
-                .domain([0, d3.max(averagedData, d => +d[key])])
-                .range([height, 0]);
-        } else {
-            y[key] = d3.scaleLinear()
-                .domain(d3.extent(averagedData, d => +d[key]))
-                .range([height, 0]);
-        }
-    }
-
-    // Function to get the color scale based on the population attribute
-    const totalPopulationByRegion = calculateTotalPopulationByRegion(initialData);
-
-    const initialPopulationExtent = [
-        d3.min([...totalPopulationByRegion.values()]), 
-        d3.max([...totalPopulationByRegion.values()])
-    ];
-    const getColorScale = () => {
-        return d3.scaleSequential()
-            .domain(initialPopulationExtent)
-            .interpolator(d3.interpolateRgb("#F0E68C", "#FF4500")); // Khaki to Dark Orange
-    };
-    const color = getColorScale();
-
-    // -------------------
-    // **Layer Ordering**
-    // -------------------
-
-    // 1. **Lines Group**: Rendered first (behind)
-    const linesGroup = svg.append("g")
-        .attr("class", "lines");
-
-    // 2. **Axes Group**: Rendered after lines (on top)
-    const axes = svg.selectAll(".myAxis")
-        .data(displayKeysOrder)
-        .enter()
-        .append("g")
-        .attr("class", "axis")
-        .attr("transform", d => `translate(${x(d)},0)`)
-        .each(function (d) { d3.select(this).call(d3.axisLeft().scale(y[d])); });
-
-    // Add interactive titles to axes
-    axes.append("text")
-        .attr("class", "axis-title")
-        .style("text-anchor", "middle")
-        .style("font-size", width * 0.00995)
-        .attr("y", height + 20)
-        .text(d => getDisplayName(d))
-        .style("fill", "black")
-        .style("cursor", "move") // Indicate draggable
-        .on("mouseover", function () {
-            d3.select(this).style("font-weight", "bold");
-        })
-        .on("mouseout", function () {
-            d3.select(this).style("font-weight", "normal");
-        });
-
-    // -------------------
-    // **Add Drag Behavior for Axis Reordering**
-    // -------------------
-
-    // Variables to track dragging state
-    let dragging = false;
-    let draggedKey = null;
-    let initialMouseX = null;
-    let initialAxisX = null;
-
-    // Drag Event Handlers
-    function dragStarted(event, d) {
-        dragging = true;
-        draggedKey = d;
-        initialMouseX = event.sourceEvent.pageX;
-        initialAxisX = x(d);
-        d3.select(this).classed("active", true);
-    }
-
-    function draggedAxisHandler(event, d) {
-        if (!dragging) return;
-
-        let dx = event.sourceEvent.pageX - initialMouseX;
-        let newX = initialAxisX + dx;
-
-        // Clamp the newX within the chart area
-        newX = Math.max(0, Math.min(width, newX));
-
-        // Update the position of the dragged axis
-        d3.select(this.parentNode)
-            .attr("transform", `translate(${newX},0)`);
-
-        // Optionally, show the dragged axis on top
-    }
-
-    function dragEnded(event, d) {
-        if (!dragging) return;
-        dragging = false;
-        d3.select(this).classed("active", false);
-
-        // Get the final x position of the dragged axis
-        const finalTransform = d3.select(this.parentNode).attr("transform");
-        const finalX = parseFloat(finalTransform.split("(")[1]);
-
-        // Calculate the step size between axes
-        const step = width / (displayKeysOrder.length - 1);
-
-        // Determine the new index based on the final x position
-        let newIndex = Math.round(finalX / step);
-        newIndex = Math.max(0, Math.min(displayKeysOrder.length - 1, newIndex));
-
-        // Find the current index of the dragged key
-        const oldIndex = displayKeysOrder.indexOf(draggedKey);
-
-        if (newIndex !== oldIndex) {
-            // Remove the axis from the old position
-            displayKeysOrder.splice(oldIndex, 1);
-            // Insert it into the new position
-            displayKeysOrder.splice(newIndex, 0, draggedKey);
-        }
-
-        // Update the x scale domain
-        x.domain(displayKeysOrder);
-
-        // Transition axes to new positions
-        axes.transition()
-            .duration(500)
-            .attr("transform", d => `translate(${x(d)},0)`);
-
-        // Transition lines to new positions
-        linesGroup.selectAll("path")
-            .transition()
-            .duration(400)
-            .ease(d3.easeCubic)
-            .attr("d", d => linePath(d));
-
-        // Reapply brushes
-        svg.selectAll(".brush")
-            .remove();
-
-        svg.selectAll(".axis")
-            .append("g")
-            .attr("class", "brush")
-            .each(function (d) { d3.select(this).call(brush); });
-
-        // Reset draggedKey
-        draggedKey = null;
-    }
-
-    const dragBehavior = d3.drag()
-        .on("start", dragStarted)
-        .on("drag", draggedAxisHandler)
-        .on("end", dragEnded);
-
-    // Apply drag behavior to axis titles
-    axes.select(".axis-title").call(dragBehavior);
-
-    // 3. **Brushes Group**: Rendered after axes (on top)
-    const brush = d3.brushY()
-        .extent([[-15, 0], [15, height]])
-        .on("start brush end", brushed);
-
-    // Apply brush to all axes, including happiness score
-    svg.selectAll(".axis")
-        .append("g")
-        .attr("class", "brush")
-        .each(function (d) { d3.select(this).call(brush); });
-
-    var tooltip = container.append("div")
-        .attr("class", "tooltip") // For CSS styling
-        .style("position", "absolute")
-        .style("background", "lightsteelblue")
-        .style("padding", "5px")
-        .style("border-radius", "5px")
-        .style("pointer-events", "none")
-        .style("font-family", "Arial")
-        .style("font-size", "14px")
-        .style("opacity", 0) // Initially hidden
-        .style("z-index", 10); // Ensures tooltip is on top
-
-    // Initialize state variables
     let activeBrushes = new Map();
     let brushExtents = new Map();
-
-    // Initialize state variables for hover
     let hoveredData = null;
-
-    // Set to keep track of selected lines via brushing and clicking
     let selectedData = new Set();
 
-    // -------------------
-    // **Lines Rendering with Hover and Brush**
-    // -------------------
-    function drawLines(filteredData) {
+    const memoizedTotalPopulation = (() => {
+        let cache = null;
+        return (data) => {
+            if (!cache) {
+                cache = calculateTotalPopulationByRegion(data);
+            }
+            return cache;
+        };
+    })();
+
+    function setup() {
+        container.selectAll("*").remove();
+        averagedData = calculateAverages(data, keys);
+        parallelCoordX.domain(displayKeysOrder);
+        
+        initializeScales(averagedData);
+
+        const svg = container.append("svg")
+            .attr("width", containerWidth)
+            .attr("height", containerHeight)
+            .style("position", "relative")
+            .append("g")
+            .attr("transform", `translate(${margin.left},${margin.top})`);
+
+        const linesGroup = svg.append("g").attr("class", "lines");
+        setupAxes(svg);
+        setupBrushes(svg);
+        setupLegend(svg);
+        
+        drawLines(averagedData, linesGroup);
+
+        return { svg, linesGroup };
+    }
+
+    function setupLegend(svg) {
+        const totalPopulation = memoizedTotalPopulation(data);
+        const extent = [
+            d3.min([...totalPopulation.values()]),
+            d3.max([...totalPopulation.values()])
+        ];
+
+        const legendWidth = width * 0.025;
+        const legendHeight = height * 0.55;
+
+        const legend = svg.append("g")
+            .attr("class", "parallel-coordinates-legend")
+            .attr("transform", `translate(${width + margin.right - legendWidth * 4.5}, ${height * 0.25})`);
+
+        const legendScale = d3.scaleLinear()
+            .domain(extent)
+            .range([legendHeight, 0]);
+
+        const legendAxis = d3.axisRight(legendScale)
+            .ticks(5)
+            .tickFormat(d => {
+                if (d >= 1e9) {
+                    return `${d3.format(".1f")(d / 1e9)}B`;
+                } else if (d >= 1e6) {
+                    return `${d3.format(".0f")(d / 1e6)}M`;
+                } else if (d >= 1e3) {
+                    return `${d3.format(".0f")(d / 1e3)}K`;
+                } else {
+                    return d3.format(".0f")(d);
+                }
+            });
+
+        const gradient = legend.append("defs")
+            .append("linearGradient")
+            .attr("id", "parallel-coordinates-legend-gradient")
+            .attr("x1", "0%")
+            .attr("y1", "100%")
+            .attr("x2", "0%")
+            .attr("y2", "0%");
+
+        gradient.selectAll("stop")
+            .data(d3.range(0, 1.001, 0.1))
+            .enter()
+            .append("stop")
+            .attr("offset", d => d * 100 + "%")
+            .attr("stop-color", d => getColorScale(totalPopulation)(d3.interpolateNumber(extent[0], extent[1])(d)));
+
+        legend.append("rect")
+            .attr("width", legendWidth)
+            .attr("height", legendHeight)
+            .style("fill", "url(#parallel-coordinates-legend-gradient)");
+
+        legend.append("g")
+            .attr("transform", `translate(${legendWidth}, 0)`)
+            .style("font-size", height * 0.03)
+            .call(legendAxis);
+
+        legend.append("text")
+            .attr("x", width * 0.01)
+            .attr("y", -height * 0.05)
+            .attr("text-anchor", "middle")
+            .style("font-family", "Arial")
+            .style("font-size", height * 0.04)
+            .text('Population');
+    }
+
+    function initializeScales(data) {
+        keys.forEach(key => {
+            if (key === 'temperature') {
+                const validData = data.filter(d => +d[key] !== -999.0);
+                y[key] = d3.scaleLinear()
+                    .domain([d3.min(validData, d => +d[key]), d3.max(validData, d => +d[key])])
+                    .range([height, 0]);
+            } else if (key === 'fertility_rate') {
+                y[key] = d3.scaleLinear()
+                    .domain([0, d3.max(data, d => +d[key])])
+                    .range([height, 0]);
+            } else {
+                const extent = d3.extent(data, d => +d[key]);
+                const padding = (extent[1] - extent[0]) * 0.05;
+                y[key] = d3.scaleLinear()
+                    .domain([extent[0] - padding, extent[1] + padding])
+                    .range([height, 0]);
+            }
+        });
+    }
+
+    function linePath(d) {
+        const cacheKey = `${d.country}-${JSON.stringify(displayKeysOrder)}`;
+        if (cachedLinePaths.has(cacheKey)) {
+            return cachedLinePaths.get(cacheKey);
+        }
+
+        const path = d3.line()(
+            displayKeysOrder.map(key => {
+                const value = d[key];
+                if (value === -999 || value === undefined) {
+                    return [parallelCoordX(key), height];
+                }
+                const yValue = Math.max(y[key].range()[1], 
+                    Math.min(y[key].range()[0], y[key](value)));
+                return [parallelCoordX(key), yValue];
+            })
+        );
+
+        cachedLinePaths.set(cacheKey, path);
+        return path;
+    }
+
+    function drawLines(filteredData, linesGroup) {
         const dataToRender = selectedCountry 
             ? averagedData.filter(d => d.country === selectedCountry)
             : filteredData;
-    
-        // Bind data with unique identifier
+
+        const totalPopulation = memoizedTotalPopulation(initialData);
+        const color = getColorScale(totalPopulation);
+        
         const lines = linesGroup.selectAll("path")
-            .data(dataToRender, d => d.country + d.year);
-    
-        // Remove exiting lines
+            .data(dataToRender, d => d.country);
+
         lines.exit().remove();
-    
-        // Add new lines
+
         const linesEnter = lines.enter()
             .append("path")
-            .attr("d", d => linePath(d))
-            .attr("fill", "none");
-    
-        // Merge enter and existing lines
-        linesEnter.merge(lines)
+            .attr("fill", "none")
+            .attr("d", d => linePath(d));
+
+        const allLines = lines.merge(linesEnter)
             .transition()
             .duration(60)
             .attr("d", d => linePath(d))
             .attr("stroke", d => {
                 if (selectedCountry && d.country === selectedCountry) {
-                    return "#FF0000"; // Red color for selected country
+                    return "#FF0000";
                 }
-                const regionPopulation = totalPopulationByRegion.get(d.region);
-                return color(regionPopulation);
+                return color(totalPopulation.get(d.region));
             })
-            .attr("stroke-width", d => selectedCountry && d.country === selectedCountry ? 2 : 1.5) // Increased minimum stroke width
-            .attr("opacity", d => {
-                if (selectedCountry) {
-                    return d.country === selectedCountry ? 1 : 0.2; // Increased minimum opacity
-                }
-                if (hoveredData && hoveredData === d) {
-                    return 1;
-                } else if (selectedData.has(d)) {
-                    return 1;
-                } else {
-                    return 0.2; // Increased minimum opacity
-                }
-            });
+            .attr("stroke-width", d => selectedCountry && d.country === selectedCountry ? 2 : 1.5)
+            .attr("opacity", d => 1);
 
-        // Add hover interactions
-        linesEnter.merge(lines)
-            .on("mouseover", function(event, d) {
-                hoveredData = d;
-                d3.select(this)
-                    .attr("stroke-width", 3)
-                    .attr("stroke", "#FF4500"); // Orangered for hover
-
-                // Show tooltip
-                tooltip.transition()
-                    .duration(200)
-                    .style("opacity", 0.9);
-
-                // Define tooltip content
-                tooltip.html(`
-                    <strong>${d.country}</strong><br/>
-                    Region: ${d.region}<br/>
-                    Happiness Score: ${d.happiness_score.toFixed(2)}<br/>
-                    Regional Population: ${d.population.toFixed(0)}<br/>
-                    <!-- Add more fields as necessary -->
-                `)
-                    .style("left", (event.pageX + 10) + "px")
-                    .style("top", (event.pageY - 28) + "px");
-            })
-            .on("mousemove", function (event, d) {
-                tooltip
-                    .style("left", (event.pageX + 10) + "px")
-                    .style("top", (event.pageY - 28) + "px");
-            })
-            .on("mouseout", function(event, d) {
-                hoveredData = null;
-                d3.select(this)
-                    .attr("stroke-width", selectedCountry && d.country === selectedCountry ? 2 : 1)
-                    .attr("stroke", () => {
-                        if (selectedCountry && d.country === selectedCountry) {
-                            return "#FF0000"; // Keep selected country red
-                        }
-                        return color(totalPopulationByRegion.get(d.region));
-                    })
-                    .attr("opacity", () => {
-                        if (selectedCountry) {
-                            return d.country === selectedCountry ? 1 : 0.1;
-                        }
-                        return selectedData.has(d) ? 1 : 0.1;
-                    });
-
-                // Hide tooltip
-                tooltip.transition()
-                    .duration(200)
-                    .style("opacity", 0);
-            })
-            .on("click", function(event, d) {
-                if (selectedCountry === d.country) {
-                    // Deselect the country
-                    selectedCountry = null;
-                    LinkedCharts.publish('countrySelection', null);
-                } else {
-                    // Select the country
-                    selectedCountry = d.country;
-                    LinkedCharts.publish('countrySelection', { country: d.country, year: d.year });
-                }
-                drawLines(filteredData);
-            });
+        setupLineInteractions(linesEnter.merge(lines), filteredData);
     }
 
-    function linePath(d) {
-        return d3.line()(
-            displayKeysOrder.map(key => {
-                const value = d[key];
-                // Check if the value is valid (not -999 or undefined)
-                if (value === -999 || value === undefined) {
-                    return [x(key), height]; // Place it at the bottom if value is invalid
-                }
-                // Clamp the value to the scale's range
-                const yValue = Math.max(y[key].range()[1], Math.min(y[key].range()[0], y[key](value)));
-                return [x(key), yValue];
-            })
-        );
-    }
-    // Initial draw
-    drawLines(averagedData);
-
-    // -------------------
-    // **Brush and Selection Handling**
-    // -------------------
     function brushed(event, key) {
         const selection = event.selection;
         if (selection) {
@@ -386,96 +223,274 @@ function createParallelCoordinates(initialData, containerId) {
             activeBrushes.delete(key);
             brushExtents.delete(key);
         }
+
         const filteredDataForDraw = filterData(averagedData);
         const filteredData = filterData(data);
         selectedData = new Set(filteredData);
-        drawLines(filteredDataForDraw);
-        LinkedCharts.publish('parallelCoordinatesFilter', filteredData);
+        drawLines(filteredDataForDraw, d3.select('.lines'));
+        
+        // Publish filtered data to other charts
+        if (filteredData.length > 0) {
+            LinkedCharts.publish('parallelCoordinatesFilter', filteredData);
+        } else {
+            LinkedCharts.publish('parallelCoordinatesFilter', data);
+        }
     }
 
     function filterData(dataToFilter) {
         if (brushExtents.size === 0) return dataToFilter;
         
-        return dataToFilter.filter(d => {
-            return Array.from(brushExtents).every(([key, brushRange]) => {
+        const brushEntries = Array.from(brushExtents.entries());
+        return dataToFilter.filter(d => 
+            brushEntries.every(([key, [min, max]]) => {
                 const value = +d[key];
-                return value >= brushRange[1] && value <= brushRange[0];
+                return value >= Math.min(min, max) && value <= Math.max(min, max);
+            })
+        );
+    }
+
+    function calculateAverages(data, keys) {
+        const groupedData = d3.group(data, d => d.country);
+        return Array.from(groupedData, ([country, group]) => {
+            const result = { 
+                country: country, 
+                region: group[0].region,
+                population: d3.mean(group, d => +d.population)
+            };
+            keys.forEach(key => {
+                const values = group.map(d => +d[key]).filter(value => value !== -999);
+                result[key] = values.length ? d3.mean(values) : -999;
             });
+            return result;
         });
     }
 
-    // -------------------
-    // **Legend Setup**
-    // -------------------
-    function createStaticLegend(data, width, height) {
-        // Use the initial population extent for the legend
-        const extent = initialPopulationExtent;
-    
-        const legendWidth = width * 0.025;
-        const legendHeight = height * 0.55;
-    
-        const legend = svg.append("g")
-            .attr("class", "parallel-coordinates-legend")
-            .attr("transform", `translate(${width + margin.right - legendWidth * 4.5}, ${height * 0.25})`);
-    
-        // Use the initial population extent for the color scale in the gradient
-        const legendScale = d3.scaleLinear()
-            .domain(extent)
-            .range([legendHeight, 0]);
-    
-        const legendAxis = d3.axisRight(legendScale)
-            .ticks(5)
-            .tickFormat(d3.format(".0f"));
-    
-        // Create gradient using the same color scale as the lines
-        const gradient = legend.append("defs")
-            .append("linearGradient")
-            .attr("id", "parallel-coordinates-legend-gradient")
-            .attr("x1", "0%")
-            .attr("y1", "100%")
-            .attr("x2", "0%")
-            .attr("y2", "0%");
-    
-        // Define the color stops for the gradient based on the color scale
-        gradient.selectAll("stop")
-            .data(d3.range(0, 1.001, 0.1))
+    function setupAxes(svg) {
+        const axes = svg.selectAll(".myAxis")
+            .data(displayKeysOrder)
             .enter()
-            .append("stop")
-            .attr("offset", d => d * 100 + "%")
-            .attr("stop-color", d => color(d3.interpolateNumber(extent[0], extent[1])(d)));
-    
-        // Create rectangle for the gradient
-        legend.append("rect")
-            .attr("width", legendWidth)
-            .attr("height", legendHeight)
-            .style("fill", "url(#parallel-coordinates-legend-gradient)");
-    
-        // Add axis to legend
-        legend.append("g")
-            .attr("transform", `translate(${legendWidth}, 0)`)
-            .style("font-size", height * 0.03)
-            .call(legendAxis);
-    
-        // Add title to legend
-        legend.append("text")
-            .attr("x", width * 0.01)
-            .attr("y", -height * 0.05)
-            .attr("text-anchor", "middle")
-            .style("font-family", "Arial")
-            .style("font-size", height * 0.04)
-            .text('Population');
+            .append("g")
+            .attr("class", "axis")
+            .attr("transform", d => `translate(${parallelCoordX(d)},0)`)
+            .each(function(d) { 
+                d3.select(this).call(d3.axisLeft().scale(y[d]));
+            });
+
+        setupAxisTitles(axes);
     }
+
+    function setupAxisTitles(axes) {
+        axes.append("text")
+            .attr("class", "axis-title")
+            .style("text-anchor", "middle")
+            .style("font-size", width * 0.00995)
+            .attr("y", height + 20)
+            .text(d => getDisplayName(d))
+            .style("fill", "black")
+            .style("cursor", "move")
+            .call(setupDragBehavior());
+    }
+
+    function setupDragBehavior() {
+        let dragging = false;
+        let draggedKey = null;
+        let initialMouseX = null;
+        let initialAxisX = null;
     
+        return d3.drag()
+            .on("start", dragStarted)
+            .on("drag", dragged)
+            .on("end", dragEnded);
+    
+        function dragStarted(event, d) {
+            dragging = true;
+            draggedKey = d;
+            initialMouseX = event.sourceEvent.pageX;
+            initialAxisX = parallelCoordX(d);
+            d3.select(this).classed("active", true);
+        }
+    
+        function dragged(event, d) {
+            if (!dragging) return;
+            let dx = event.sourceEvent.pageX - initialMouseX;
+            let newX = Math.max(0, Math.min(width, initialAxisX + dx));
+            d3.select(this.parentNode)
+                .attr("transform", `translate(${newX},0)`);
+        }
+    
+        function dragEnded(event, d) {
+            if (!dragging) return;
+            dragging = false;
+            d3.select(this).classed("active", false);
+    
+            const finalTransform = d3.select(this.parentNode).attr("transform");
+            const finalX = parseFloat(finalTransform.split("(")[1]);
+            const step = width / (displayKeysOrder.length - 1);
+            let newIndex = Math.round(finalX / step);
+            newIndex = Math.max(0, Math.min(displayKeysOrder.length - 1, newIndex));
+    
+            const oldIndex = displayKeysOrder.indexOf(draggedKey);
+            if (newIndex !== oldIndex) {
+                // Update the display order
+                displayKeysOrder.splice(oldIndex, 1);
+                displayKeysOrder.splice(newIndex, 0, draggedKey);
+                parallelCoordX.domain(displayKeysOrder);
+                cachedLinePaths.clear();
+    
+                // Use a requestAnimationFrame to ensure DOM updates are synchronized
+                requestAnimationFrame(() => {
+                    // Update all axes positions and their titles together
+                    const axes = d3.selectAll(".axis")
+                        .transition()
+                        .duration(500)
+                        .attr("transform", d => `translate(${parallelCoordX(d)},0)`);
+    
+                    // Update lines
+                    d3.select('.lines')
+                        .selectAll("path")
+                        .transition()
+                        .duration(150)
+                        .attr("d", d => linePath(d));
+                });
+            }
+            draggedKey = null;
+        }
+    }
 
-    // Initial legend creation
-    createStaticLegend(averagedData, width, height);
+    function setupBrushes(svg) {
+        const brush = d3.brushY()
+            .extent([[-15, 0], [15, height]])
+            .on("start brush end", brushed);
 
-    // -------------------
-    // **Data Update Handling**
-    // -------------------
-    LinkedCharts.subscribe('yearRange', handleYearRangeUpdate);
-    LinkedCharts.subscribe('dataUpdate', handleDataUpdate);
-    LinkedCharts.subscribe('countrySelection', handleCountrySelection);
+        svg.selectAll(".axis")
+            .append("g")
+            .attr("class", "brush")
+            .each(function(d) { 
+                d3.select(this).call(brush);
+            });
+    }
+
+    function setupLineInteractions(lines, filteredData) {
+        const tooltip = setupTooltip();
+
+        lines
+            .on("mouseover", (event, d) => {
+                hoveredData = d;
+                d3.select(event.target)
+                    .attr("stroke-width", 3)
+                    .attr("stroke", "#FF4500");
+
+                showTooltip(event, d, tooltip);
+            })
+            .on("mousemove", (event) => {
+                updateTooltipPosition(event, tooltip);
+            })
+            .on("mouseout", (event, d) => {
+                hoveredData = null;
+                resetLineStyle(event.target, d);
+                hideTooltip(tooltip);
+            })
+            .on("click", (event, d) => {
+                if (currentTooltip) {
+                    currentTooltip.remove();
+                    currentTooltip = null;
+                }
+                handleLineClick(d, filteredData);
+            });
+    }
+
+    function setupTooltip() {
+        if (currentTooltip) {
+            currentTooltip.remove();
+        }
+        currentTooltip = container.append("div")
+            .attr("class", "tooltip")
+            .style("position", "absolute")
+            .style("background", "lightsteelblue")
+            .style("padding", "5px")
+            .style("border-radius", "5px")
+            .style("pointer-events", "none")
+            .style("font-family", "Arial")
+            .style("font-size", "14px")
+            .style("opacity", 0)
+            .style("z-index", 10);
+        return currentTooltip;
+    }
+
+    function showTooltip(event, d, tooltip) {
+        tooltip.transition()
+            .duration(200)
+            .style("opacity", 0.9);
+        
+        tooltip.html(`
+            <strong>${d.country}</strong><br/>
+            Region: ${d.region}<br/>
+            Happiness Score: ${d.happiness_score.toFixed(2)}<br/>
+            Regional Population: ${d.population ? d3.format(",")(Math.round(d.population)) : 'N/A'}
+        `)
+        .style("left", (event.pageX + 10) + "px")
+        .style("top", (event.pageY - 28) + "px");
+    }
+
+    function updateTooltipPosition(event, tooltip) {
+        tooltip
+            .style("left", (event.pageX + 10) + "px")
+            .style("top", (event.pageY - 28) + "px");
+    }
+
+    function hideTooltip(tooltip) {
+        tooltip.transition()
+            .duration(200)
+            .style("opacity", 0);
+    }
+
+    function handleLineClick(d, filteredData) {
+        if (selectedCountry === d.country) {
+            selectedCountry = null;
+            LinkedCharts.publish('countrySelection', null);
+        } else {
+            selectedCountry = d.country;
+            LinkedCharts.publish('countrySelection', { country: d.country, year: d.year });
+        }
+        drawLines(filteredData, d3.select('.lines'));
+    }
+
+    function resetLineStyle(element, d) {
+        const totalPopulation = memoizedTotalPopulation(initialData);
+        d3.select(element)
+            .attr("stroke-width", selectedCountry && d.country === selectedCountry ? 2 : 1)
+            .attr("stroke", () => {
+                if (selectedCountry && d.country === selectedCountry) {
+                    return "#FF0000";
+                }
+                return getColorScale(totalPopulation)(totalPopulation.get(d.region));
+            })
+            .attr("opacity", () => {
+                if (selectedCountry) {
+                    return d.country === selectedCountry ? 1 : 0.1;
+                }
+                return selectedData.has(d) ? 0.8 : 0.1;
+            });
+    }
+
+    function getColorScale(totalPopulation) {
+        const extent = [
+            d3.min([...totalPopulation.values()]),
+            d3.max([...totalPopulation.values()])
+        ];
+        return d3.scaleSequential()
+            .domain(extent)
+            .interpolator(d3.interpolateRgb("#F0E68C", "#FF4500"));
+    }
+
+    function calculateTotalPopulationByRegion(data) {
+        return new Map(Array.from(
+            d3.rollup(data, 
+                v => d3.sum(v, d => +d.population),
+                d => d.region
+            )
+        ));
+    }
 
     function handleYearRangeUpdate(yearRange) {
         const { startYear, endYear, selectedYear } = yearRange;
@@ -486,94 +501,35 @@ function createParallelCoordinates(initialData, containerId) {
                 : dataYear >= parseInt(startYear) && dataYear <= parseInt(endYear);
         });
 
-        updateParallelCoordinates(filteredData);
+        updateVisualization(filteredData);
     }
 
     function handleDataUpdate(newData) {
         initialData = newData;
-        updateParallelCoordinates(newData);
+        updateVisualization(newData);
     }
 
     function handleCountrySelection(countryData) {
         if (countryData) {
             selectedCountry = countryData.country;
-            // Filter data for the selected country
-            const countryFilteredData = averagedData.filter(d => d.country === selectedCountry);
-            selectedData = new Set(countryFilteredData);
+            selectedData = new Set(averagedData.filter(d => d.country === selectedCountry));
         } else {
             selectedCountry = null;
-            // Reset to show all data
             selectedData = new Set(averagedData);
         }
-        drawLines(averagedData);
+        drawLines(averagedData, d3.select('.lines'));
     }
 
-    function updateParallelCoordinates(updatedData) {
-        averagedData = calculateAverages(updatedData, keys);
-    
-        // Update scales
-        updateScales(averagedData);
-
-        // Update axes
-        svg.selectAll(".axis")
-            .each(function (d) {
-                d3.select(this).call(d3.axisLeft(y[d]).ticks(5));
-            });
-    
-        // No need to update color scale as it's now static
-
-        // Update legend
-        svg.selectAll(".parallel-coordinates-legend").remove();
-        createStaticLegend(averagedData, width, height);
-    
-        // Redraw lines
-        selectedData = new Set(filterData(averagedData));
-        drawLines(filterData(averagedData));
+    function updateVisualization(updatedData) {
+        data = updatedData;
+        cachedLinePaths.clear();
+        const { svg, linesGroup } = setup();
+        drawLines(averagedData, linesGroup);
     }
 
-    function updateScales(data) {
-        keys.forEach(key => {
-            if (key === 'temperature') {
-                y[key].domain([
-                    d3.min(data.filter(d => +d[key] !== -999.0), d => +d[key]),
-                    d3.max(data, d => +d[key])
-                ]);
-            } else if (key === 'fertility_rate') {
-                y[key].domain([0, d3.max(data, d => +d[key])]);
-            } else {
-                // Extend the domain slightly beyond the data range
-                const extent = d3.extent(data, d => +d[key]);
-                const padding = (extent[1] - extent[0]) * 0.05; // 5% padding
-                y[key].domain([extent[0] - padding, extent[1] + padding]);
-            }
-        });
-    }
+    LinkedCharts.subscribe('yearRange', handleYearRangeUpdate);
+    LinkedCharts.subscribe('dataUpdate', handleDataUpdate);
+    LinkedCharts.subscribe('countrySelection', handleCountrySelection);
 
-    function calculateAverages(data, keys) {
-        return Array.from(d3.rollup(data, group => {
-            const averages = {};
-            // Calculate average for each key except country, year, and region
-            keys.forEach(key => {
-                const values = group.map(d => +d[key]).filter(value => value !== -999); // Remove invalid values (-999)
-                averages[key] = values.length ? d3.mean(values) : -999; // Calculate mean or assign -999 if no valid data
-            });
-            return {
-                country: group[0].country, // Use the country name from the group
-                region: group[0].region,
-                ...averages
-            };
-        }, d => d.country)).map(d => d[1]);
-    }
-
-    // Function to calculate total population by region
-    function calculateTotalPopulationByRegion(data) {
-
-        const totalPopulationByRegion = d3.rollup(data, 
-            v => d3.sum(v, d => +d.population), // Sum population
-            d => d.region // Group by region
-        );
-
-        // Convert to a Map for easy access
-        return new Map(totalPopulationByRegion);
-    }
+    const { svg, linesGroup } = setup();
 }

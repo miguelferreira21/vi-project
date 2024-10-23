@@ -195,19 +195,20 @@ function createRooftopMatrix(data, containerId) {
         .domain(d3.range(numericalColumns.length))
         .range([0, numericalColumns.length * (Math.sqrt(2 * (cellSize ** 2)))]);
 
-    // Add labels for the y-axis (left side attributes)
+    // Add labels for the y-axis (left side attributes) with specific class
     const yAxisGroup = svg.append("g")
-        .attr("class", "y axis")
-        .attr("transform", `translate(${width * 0.3}, ${height * 0.022})`); // Ensure y-axis is at the origin
+        .attr("class", "rooftop-matrix-y-axis")  // Changed class name
+        .attr("transform", `translate(${width * 0.3}, ${height * 0.022})`);
 
     // Create y-axis with ticks only for labels
     const yAxis = d3.axisLeft(yScale)
-        .tickFormat(i => formatLabel(numericalColumns[i])) // Format labels
-        .ticks(numericalColumns.length); // Set ticks according to the number of labels
+        .tickFormat(i => formatLabel(numericalColumns[i]))
+        .ticks(numericalColumns.length);
 
-    // Call the y-axis
+    // Call the y-axis with specific class for text elements
     yAxisGroup.call(yAxis)
         .selectAll("text")
+        .attr("class", "rooftop-matrix-label")  // Added specific class
         .style("font-size", height*0.04);
 
     // Remove the axis line itself
@@ -230,15 +231,16 @@ function createRooftopMatrix(data, containerId) {
 
     tempText.remove(); // Remove the temporary text element
 
-    // Add horizontal lines between each of the attributes on the y-axis
+    // Add horizontal lines between each of the attributes with specific class
     numericalColumns.forEach((_, index) => {
         svg.append("line")
+            .attr("class", "rooftop-matrix-gridline")  // Added specific class
             .attr("x1", width*0.3)
-            .attr("y1", yScale(index) + height*0.022) // Middle of the cell
-            .attr("x2", -maxLabelWidth * 0.75 + width*0.3) // Set line length based on max label width
-            .attr("y2", yScale(index) + height*0.022) // Same as y1
-            .style("stroke", "black") // Line color
-            .style("stroke-width", 1); // Line width
+            .attr("y1", yScale(index) + height*0.022)
+            .attr("x2", -maxLabelWidth * 0.75 + width*0.3)
+            .attr("y2", yScale(index) + height*0.022)
+            .style("stroke", "black")
+            .style("stroke-width", 1);
     });
 
     // Add an extra line below the last one
@@ -428,3 +430,4 @@ function addColorScaleLegend(svg, colorScale, width, height, cellSize) {
         .style("alignment-baseline", "middle")
         .text("Strong Correlation"); // Replace with the actual description
 }
+
