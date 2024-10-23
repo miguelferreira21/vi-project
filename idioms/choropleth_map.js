@@ -175,7 +175,11 @@ function handleParallelCoordinatesFilter(filteredData) {
                 // Revert stroke color and width when mouse leaves
                 d3.select(this)
                     .attr("stroke", d.properties && d.properties.name === selectedCountry ? "#8B0000" : "#fff") // Revert to original stroke color
-                    .attr("stroke-width", d.properties && d.properties.name === selectedCountry ? 0.75 : 0.25); // Maintain stroke width for selected country
+                    .attr("stroke-width", d.properties && d.properties.name === selectedCountry ? 0.75 : 0.25) // Maintain stroke width for selected country
+                    .filter(function(d) {
+                      return d.properties && d.properties.name !== selectedCountry
+                    })
+                    .lower();
                 hideTooltip();
             })
             .on("click", function(event, d) {
