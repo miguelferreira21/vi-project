@@ -126,10 +126,6 @@ function createRooftopMatrix(data, containerId) {
             .on("mouseover", function(event, d) {
                 // Check if the hovered rectangle is part of the matrix
                 if (d && d.value !== undefined) {
-                    // Highlight the hovered cell
-                    d3.select(this)
-                        .raise()
-                        .style("stroke-width", 3);
                 
                     // Show tooltip
                     tooltip.transition().duration(200).style("opacity", 1);
@@ -142,7 +138,7 @@ function createRooftopMatrix(data, containerId) {
                 
                     cellGroup.selectAll("rect")
                         .filter(function(rectData) {
-                            return rectData && ((rectData.i === d.i && rectData.j < d.j) || (rectData.j === d.j && rectData.i > d.i));
+                            return rectData && !((rectData.i === d.i) || (rectData.j === d.j));
                         })
                         .each(function() {
                             // Append a translucent gray rect overlay on top of each filtered cell
@@ -154,9 +150,14 @@ function createRooftopMatrix(data, containerId) {
                                 .attr("width", d3.select(this).attr("width"))
                                 .attr("height", d3.select(this).attr("height"))
                                 .attr("transform", d3.select(this).attr("transform")) // Apply the same transformation
-                                .style("fill", "rgba(252, 187, 8, 0.5)") // Set the overlay color with 50% opacity
+                                .style("fill", "rgba(204, 204, 204, 1)") // Set the overlay color with 50% opacity
                                 .style("pointer-events", "none");  // Ensure it doesn't interfere with hover events
                         });
+                    
+                    // Highlight the hovered cell
+                    d3.select(this)
+                    .raise()
+                    .style("stroke-width", 3);
                 }
             })
             .on("mouseout", function(event, d) {

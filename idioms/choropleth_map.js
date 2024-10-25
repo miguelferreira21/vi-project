@@ -154,38 +154,35 @@ function handleParallelCoordinatesFilter(filteredData) {
             .attr("stroke-width", d => {
                 return d.properties && d.properties.name === selectedCountry ? 0.75 : 0.25; // Maintain stroke width for selected country
             })
-            .on("mouseover", debounce(function(event, d) {
+            .on("mouseover", function(event, d) {
                 if (!d || !d.properties) return;
-                d3.select(this)
-                    .raise()
-                    .attr("stroke", "#000")
-                    .attr("stroke-width", d.properties.name === selectedCountry ? 0.75 : 0.50);
                 const countryData = processedData.find(item => item.country === d.properties.name);
-                if (countryData) {
-                    showTooltip(event, d, countryData);
-                    LinkedCharts.publish('countryHover', d.properties.name);
-                }
-            }, 100))  // Debounce for 100ms
+                if (!countryData) return;
+                d3.select(this)
+                  .raise()
+                  .attr("stroke", "#000")
+                  .attr("stroke-width", d.properties.name === selectedCountry ? 0.75 : 0.50);
+                showTooltip(event, d, countryData);
+                LinkedCharts.publish('countryHover', d.properties.name);
+            })
             .on("mousemove", function(event, d) {
                 if (!d || !d.properties) return;
                 const countryData = processedData.find(item => item.country === d.properties.name);
-                if (countryData) {
-                    updateTooltipPosition(event);
-                }
+                if (!countryData) return;
+                updateTooltipPosition(event);
             })
             .on("mouseout", function(event, d) {
-                // Revert stroke color and width when mouse leaves
                 d3.select(this)
-                    .attr("stroke", d.properties && d.properties.name === selectedCountry ? "#8B0000" : "#fff") // Revert to original stroke color
-                    .attr("stroke-width", d.properties && d.properties.name === selectedCountry ? 0.75 : 0.25) // Maintain stroke width for selected country
-                    .filter(function(d) {
-                      return d.properties && d.properties.name !== selectedCountry
-                    })
-                    .lower();
+                  .attr("stroke", d.properties && d.properties.name === selectedCountry ? "#8B0000" : "#fff")
+                  .attr("stroke-width", d.properties && d.properties.name === selectedCountry ? 0.75 : 0.25)
+                  .filter(d => d.properties && d.properties.name !== selectedCountry)
+                  .lower();
                 hideTooltip();
             })
             .on("click", function(event, d) {
                 if (!d || !d.properties) return;
+                const countryData = processedData.find(item => item.country === d.properties.name);
+                if (!countryData) return;
                 const countryName = d.properties.name;
                 handleCountrySelection(countryName, processedData);
                 zoomToCountry(d, width, height);
@@ -354,6 +351,11 @@ function handleParallelCoordinatesFilter(filteredData) {
         .attr("stroke-width", d => {
           if (d.properties && d.properties.name === selectedCountry) return 0.75;
           return d.properties && d.properties.name === countryName ? 0.5 : 0.25;
+        })
+        .each(function(d) {
+          if (d.properties && d.properties.name === countryName) {
+            d3.select(this).raise();
+          }
         });
     }
 
