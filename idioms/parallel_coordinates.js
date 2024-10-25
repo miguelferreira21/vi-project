@@ -380,6 +380,8 @@ function createParallelCoordinates(initialData, containerId) {
                     .attr("stroke-width", 3)
                     .attr("stroke", "#FF4500");
 
+                // Publish hover event for choropleth map
+                LinkedCharts.publish('countryHover', d.country);
                 showTooltip(event, d, tooltip);
             })
             .on("mousemove", (event) => {
@@ -388,6 +390,8 @@ function createParallelCoordinates(initialData, containerId) {
             .on("mouseout", (event, d) => {
                 hoveredData = null;
                 resetLineStyle(event.target, d);
+                // Clear hover state
+                LinkedCharts.publish('countryHover', null);
                 hideTooltip(tooltip);
             })
             .on("click", (event, d) => {
@@ -458,7 +462,7 @@ function createParallelCoordinates(initialData, containerId) {
     function resetLineStyle(element, d) {
         const totalPopulation = memoizedTotalPopulation(initialData);
         d3.select(element)
-            .attr("stroke-width", selectedCountry && d.country === selectedCountry ? 2 : 1)
+            .attr("stroke-width", selectedCountry && d.country === selectedCountry ? 2 : 1.5)
             .attr("stroke", () => {
                 if (selectedCountry && d.country === selectedCountry) {
                     return "#FF0000";
@@ -469,7 +473,7 @@ function createParallelCoordinates(initialData, containerId) {
                 if (selectedCountry) {
                     return d.country === selectedCountry ? 1 : 0.1;
                 }
-                return selectedData.has(d) ? 0.8 : 0.1;
+                return selectedData.size > 0 ? (selectedData.has(d) ? 1 : 0.1) : 1;
             });
     }
 

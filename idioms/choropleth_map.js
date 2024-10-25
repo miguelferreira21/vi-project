@@ -2,12 +2,13 @@ let svg, mapGroup, colorScale, legendHeight;
 let currentData, initialExtent;
 let tooltip;
 let selectedCountry = null;
+let width, height, zoom, initialTransform, projection, path;
 
 function createChoroplethMap(data, containerId) {
   currentData = data;
   // Set up dimensions
-  const width = d3.select(containerId).node().clientWidth;
-  const height = d3.select(containerId).node().clientHeight;
+  width = d3.select(containerId).node().clientWidth;
+  height = d3.select(containerId).node().clientHeight;
 
   // Create SVG
   svg = d3.select(containerId)
@@ -28,11 +29,11 @@ function createChoroplethMap(data, containerId) {
     const countries = topojson.feature(worldData, worldData.objects.countries);
   
     // Create a map projection
-    const projection = d3.geoMercator()
+    projection = d3.geoMercator()
       .fitSize([width, height], countries);
 
     // Create a path generator
-    const path = d3.geoPath().projection(projection);
+    path = d3.geoPath().projection(projection);
 
     // Calculate the bounding box of the map
     const bounds = path.bounds(countries);
@@ -49,14 +50,13 @@ function createChoroplethMap(data, containerId) {
     const initialYOffset = height*0.05;
 
     // Calculate the initial transform
-    const initialTransform = d3.zoomIdentity
+    initialTransform = d3.zoomIdentity
       .translate(translate[0] - initialXOffset, translate[1] - initialYOffset)
       .scale(scale * initialZoomFactor);
 
     // Add zoom functionality
-    const zoom = d3.zoom()
-      .scaleExtent([scale * initialZoomFactor, 8])
-      .translateExtent([[0, 0], [width, height]])
+    zoom = d3.zoom()
+      .scaleExtent([1, 8])
       .on("zoom", zoomed);
 
     svg.call(zoom)
@@ -93,6 +93,7 @@ function createChoroplethMap(data, containerId) {
     LinkedCharts.subscribe('dataUpdate', handleDataUpdate);
     LinkedCharts.subscribe('parallelCoordinatesFilter', handleParallelCoordinatesFilter);
     LinkedCharts.subscribe('countrySelection', handleCountrySelectionFromParallel);
+    LinkedCharts.subscribe('countryHover', handleCountryHover); // Add this line
 
 
     // Create static legend based on initial data
@@ -153,17 +154,18 @@ function handleParallelCoordinatesFilter(filteredData) {
             .attr("stroke-width", d => {
                 return d.properties && d.properties.name === selectedCountry ? 0.75 : 0.25; // Maintain stroke width for selected country
             })
-            .on("mouseover", function(event, d) {
+            .on("mouseover", debounce(function(event, d) {
                 if (!d || !d.properties) return;
                 d3.select(this)
                     .raise()
-                    .attr("stroke", "#000") // Change stroke color to black on hover
-                    .attr("stroke-width", d.properties.name === selectedCountry ? 0.75 : 0.50); // Keep stroke width for selected country
+                    .attr("stroke", "#000")
+                    .attr("stroke-width", d.properties.name === selectedCountry ? 0.75 : 0.50);
                 const countryData = processedData.find(item => item.country === d.properties.name);
                 if (countryData) {
                     showTooltip(event, d, countryData);
+                    LinkedCharts.publish('countryHover', d.properties.name);
                 }
-            })
+            }, 100))  // Debounce for 100ms
             .on("mousemove", function(event, d) {
                 if (!d || !d.properties) return;
                 const countryData = processedData.find(item => item.country === d.properties.name);
@@ -186,7 +188,7 @@ function handleParallelCoordinatesFilter(filteredData) {
                 if (!d || !d.properties) return;
                 const countryName = d.properties.name;
                 handleCountrySelection(countryName, processedData);
-                // Hide tooltip when clicking
+                zoomToCountry(d, width, height);
                 hideTooltip();
             });
     }
@@ -208,8 +210,13 @@ function handleParallelCoordinatesFilter(filteredData) {
     function handleCountrySelectionFromParallel(selection) {
         if (selection && selection.country) {
             selectedCountry = selection.country;
+            const countryFeature = mapGroup.selectAll("path").filter(d => d.properties && d.properties.name === selectedCountry).datum();
+            if (countryFeature) {
+                zoomToCountry(countryFeature, width, height);
+            }
         } else {
             selectedCountry = null;
+            resetZoom();
         }
         updateChoroplethMap(currentData);
     }
@@ -337,6 +344,50 @@ function handleParallelCoordinatesFilter(filteredData) {
     
       return averagedData;
     }
+
+    function handleCountryHover(countryName) {
+      mapGroup.selectAll("path")
+        .attr("stroke", d => {
+          if (d.properties && d.properties.name === selectedCountry) return "#8B0000";
+          return d.properties && d.properties.name === countryName ? "#000" : "#fff";
+        })
+        .attr("stroke-width", d => {
+          if (d.properties && d.properties.name === selectedCountry) return 0.75;
+          return d.properties && d.properties.name === countryName ? 0.5 : 0.25;
+        });
+    }
+
+    function zoomToCountry(d, width, height) {
+      const bounds = path.bounds(d);
+      const dx = bounds[1][0] - bounds[0][0];
+      const dy = bounds[1][1] - bounds[0][1];
+      const x = (bounds[0][0] + bounds[1][0]) / 2;
+      const y = (bounds[0][1] + bounds[1][1]) / 2;
+      const scale = Math.max(1, Math.min(8, 0.9 / Math.max(dx / width, dy / height)));
+      const translate = [width / 2 - scale * x, height / 2 - scale * y];
+
+      svg.transition()
+        .duration(750)
+        .call(
+          zoom.transform,
+          d3.zoomIdentity
+            .translate(translate[0], translate[1])
+            .scale(scale)
+        );
+    }
+
+    function resetZoom() {
+      svg.transition()
+        .duration(750)
+        .call(
+          zoom.transform,
+          initialTransform
+        );
+    }
+
+
+
+
 
 
 
