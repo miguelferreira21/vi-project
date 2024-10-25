@@ -25,8 +25,8 @@ function createParallelCoordinates(initialData, containerId) {
 
     const margin = { top: 20, right: 150, bottom: 30, left: 12 };
     const container = d3.select(containerId);
-    const containerWidth = container.node().clientWidth * 0.995;
-    const containerHeight = container.node().clientHeight * 1.65;
+    const containerWidth = container.node().clientWidth;
+    const containerHeight = container.node().clientHeight;
     const width = containerWidth - margin.left - margin.right;
     const height = containerHeight - margin.top - margin.bottom;
 

@@ -12,8 +12,8 @@ function createLineChart(data, containerId) {
 
     averageArray = Array.from(averagePerYear, ([year, happiness_score]) => ({ year, happiness_score }));
 
-    const width = d3.select(containerId).node().clientWidth*0.995;
-    const height = d3.select(containerId).node().clientHeight*6;
+    const width = d3.select(containerId).node().clientWidth;
+    const height = d3.select(containerId).node().clientHeight;
 
     lineChartSvg = d3.select(containerId)
         .append("svg")

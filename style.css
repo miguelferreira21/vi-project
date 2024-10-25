@@ -1,14 +1,31 @@
+/* Ensure the container and its parent elements fill the entire viewport */
+html, body {
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
 .container {
   display: grid;
   grid-template-columns: 50% 50%; /* Two equal-width columns */
-  grid-template-rows: 20% 40% 40%;  /* Three rows, automatically sized */
+  grid-template-rows: 20% 40% 40%; /* Three rows, automatically sized */
   gap: 5px; /* Adds space between grid items */
   grid-template-areas:
     "LineChart TBD"
     "Choropleth Rooftop_Matrix"
     "Parallel_coordinates Filters";
+  height: 100%; /* Occupies the full page height */
+  width: 100%; /* Occupies the full page width */
   max-height: 100%;
   max-width: 100%;
+  box-sizing: border-box;
 }
 
 .Choropleth {
@@ -99,17 +116,17 @@
 /* Style for axis lines and paths */
 .axis path,
 .axis line {
-    stroke: black; /* Ensures axes are clearly visible */
-    stroke-width: 1px;
+  stroke: black; /* Ensures axes are clearly visible */
+  stroke-width: 1px;
 }
 
 /* Style for axis labels */
 .axis text {
-    font-size: 12px; 
-    fill: black; /* Contrast color */
-    paint-order: stroke; /* Ensures text outlines are rendered */
-    stroke: white; /* Adds a white outline to text for better contrast */
-    stroke-width: 0.5px;
+  font-size: 12px; 
+  fill: black; /* Contrast color */
+  paint-order: stroke; /* Ensures text outlines are rendered */
+  stroke: white; /* Adds a white outline to text for better contrast */
+  stroke-width: 0.5px;
 }
 
 /* Enhance visual feedback for selected lines */
@@ -125,7 +142,3 @@
   stroke-width: 3px;
   opacity: 1;
 }
-
-
-
-

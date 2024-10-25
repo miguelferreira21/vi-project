@@ -6,8 +6,8 @@ let selectedCountry = null;
 function createChoroplethMap(data, containerId) {
   currentData = data;
   // Set up dimensions
-  const width = d3.select(containerId).node().clientWidth*0.995;
-  const height = d3.select(containerId).node().clientHeight*4.65;
+  const width = d3.select(containerId).node().clientWidth;
+  const height = d3.select(containerId).node().clientHeight;
 
   // Create SVG
   svg = d3.select(containerId)

@@ -5,8 +5,8 @@ function createRooftopMatrix(data, containerId) {
     // Create a nested array to store the correlation values
     var correlations = [];
 
-    const width = d3.select(containerId).node().clientWidth * 0.995;
-    const height = d3.select(containerId).node().clientHeight * 1.75;
+    const width = d3.select(containerId).node().clientWidth;
+    const height = d3.select(containerId).node().clientHeight;
     const cellSize = Math.min(width*0.68, height*0.68) / numericalColumns.length;
 
     // Create the SVG element
