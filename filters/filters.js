@@ -1,7 +1,13 @@
 let regions = []; // Stores all the regions
 let selectedRegions = []; // Track selected regions
 
+let checkboxContainer = null;
+let selectAllCheckbox = null;
+let originalData = null;
+
 function createFilters(data, containerId) {
+    // Save originalData
+    originalData = data;
     // Set up the dimensions
     const margin = { top: 20, right: 30, bottom: 50, left: 30 };
     const containerWidth = d3.select(containerId).node().clientWidth;
@@ -74,7 +80,7 @@ function createFilters(data, containerId) {
     const calculatedGap = Math.max(minGap, Math.min(maxGap, (height - 20) / totalCheckboxItems));
 
     // Create a region filter with checkboxes
-    const checkboxContainer = container.append('div')
+    checkboxContainer = container.append('div')
         .style('display', 'flex')
         .style('flex-direction', 'column')
         .style('gap', '2%') // Dynamic gap based on container's height
@@ -84,6 +90,15 @@ function createFilters(data, containerId) {
         .style('width', '65%')
         .style('height', '90%')
         .style('flex', '0 0 auto');
+
+    // Add the title for the average happiness bars
+    checkboxContainer.append('h3')
+        .text('Region Average Happiness')
+        .style('text-align', 'left') // change to left-aligned to make it easier to position
+        .style('font-size', '12px')
+        .style('font-family', 'Arial')
+        .style('margin', '5px 0')
+        .style('margin-left', '50%'); 
 
     // Scale for average happiness bars
     const xScale = d3.scaleLinear()
@@ -97,7 +112,7 @@ function createFilters(data, containerId) {
         .style('height', '6%');
 
     // Add the "Select All" checkbox
-    const selectAllCheckbox = selectAllRow.append('input')
+    selectAllCheckbox = selectAllRow.append('input')
         .attr('type', 'checkbox')
         .attr('checked', true)  // All checked by default
         .on('change', function () {
@@ -117,12 +132,60 @@ function createFilters(data, containerId) {
     // Add the label for "Select All"
     selectAllRow.append('span')
         .style('font-family', 'Arial')
-        .style('font-size', height*0.05 + 'px')
+        .style('font-size', height * 0.05 + 'px')
         .style('font-weight', 'bold')
         .style('width', '50%')
         .style('text-align', 'left')
         .style('white-space', 'normal')
         .text('Select All');
+
+    const scaleSvg = selectAllRow.append('svg')
+        .attr('width', '35%')
+        .attr('height', '10px')
+        .style('margin-left', '5%')
+        .attr('transform', `translate(0, 0)`);
+
+    // Define scale for the ticks, using the width of the scale SVG
+    const maxHappiness = d3.max(avgHappinessScores, d => d.averageHappiness);
+    const scale = d3.scaleLinear()
+        .domain([0, maxHappiness]) // Domain based on actual happiness values
+        .range([0, 100]);
+
+    // Draw the scale line
+    scaleSvg.append('line')
+        .attr('x1', '0')
+        .attr('x2', '100%')
+        .attr('y1', '10') // Positioning the line vertically
+        .attr('y2', '10') // Keep the same y-coordinate
+        .attr('stroke', '#333') // Line color
+        .attr('stroke-width', 2); // Line thickness
+
+    // Add Ticks to the Scale
+    const tickValues = d3.range(0, maxHappiness + 1, Math.ceil(maxHappiness / 5));
+
+    scaleSvg.selectAll('.tick')
+        .data(tickValues)
+        .enter()
+        .append('line')
+        .attr('class', 'tick')
+        .attr('x1', d => `${scale(d)}%`) // Map the tick values to the scale
+        .attr('x2', d => `${scale(d)}%`)
+        .attr('y1', '0')
+        .attr('y2', '15') // Length of the ticks
+        .attr('stroke', '#333'); // Tick color
+
+    // Add tick labels
+    scaleSvg.selectAll('.tick-label')
+        .data(tickValues)
+        .enter()
+        .append('text')
+        .attr('class', 'tick-label')
+        .attr('x', d => `${scale(d) - 2}%`) // Move text slightly to the left (adjust the value as needed)
+        .attr('y', '7') // Position above the ticks
+        .attr('text-anchor', 'middle')
+        .attr('font-size', '8px') // Change font size to make it smaller
+        .style('font-family', 'Arial')
+        .text(d => d.toFixed(0));
 
     // Calculate the height for each checkbox item based on the totalCheckboxItems
     const checkboxHeight = (90 / totalCheckboxItems) + "%"; // Use 90% of container height
@@ -319,7 +382,7 @@ function createFilters(data, containerId) {
                     filter.leftValue = scale(newCx);
                 } else {
                     // If dragging right slider, ensure it doesn't go before the left slider
-                    newCx = Math.max(newCx, otherCx*0.05);
+                    newCx = Math.max(newCx, otherCx*1.2);
                     filter.rightValue = scale(newCx);
                 }
 
@@ -357,6 +420,17 @@ function createFilters(data, containerId) {
             .on('mouseout', handleMouseOutFilter);
     });
 
+    // Add Reset Filters Button 
+    // @TODO review the sizes of this
+    slidersContainer.append('button')
+        .text('Reset Filters')
+        .style('align-self', 'center')
+        .style('padding', '8px 12px')
+        .style('font-size', '14px')
+        .style('margin-top', '10px')
+        .style('cursor', 'pointer')
+        .on('click', resetFilters);
+
     // Initial data filter
     filterData();
 }
@@ -390,4 +464,14 @@ function handleMouseOverBar(event, avgHappiness) {
 function handleMouseOutBar() {
     const tooltip = d3.select('#tooltip');  // Assuming you have a tooltip element
     tooltip.style('opacity', 0);
+}
+
+// Define the resetFilters function
+function resetFilters() {
+    checkboxContainer.selectAll('input.region-checkbox')
+        .property('checked', true);
+    selectAllCheckbox.property('checked', true);
+
+    data = originalData;
+    LinkedCharts.publish('dataUpdate', data);
 }
