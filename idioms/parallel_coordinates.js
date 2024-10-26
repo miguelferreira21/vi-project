@@ -48,17 +48,28 @@ function createParallelCoordinates(initialData, containerId) {
         };
     })();
 
+    // Add this variable at the top of your createParallelCoordinates function
+    let initialDisplayKeysOrder;
+
     function setup() {
         container.selectAll("*").remove();
         averagedData = calculateAverages(data, keys);
         
-        // Modify the displayKeysOrder array to switch the positions
-        const freedomIndex = displayKeysOrder.indexOf('freedom_to_make_life_choices');
-        const corruptionIndex = displayKeysOrder.indexOf('perceptions_of_corruption');
-        if (freedomIndex !== -1 && corruptionIndex !== -1) {
-            [displayKeysOrder[freedomIndex], displayKeysOrder[corruptionIndex]] = 
-            [displayKeysOrder[corruptionIndex], displayKeysOrder[freedomIndex]];
+        // Set the initial display order only if it hasn't been set before
+        if (!initialDisplayKeysOrder) {
+            initialDisplayKeysOrder = keys.filter(key => key !== 'population');
+            
+            // Modify the displayKeysOrder array to switch the positions
+            const freedomIndex = initialDisplayKeysOrder.indexOf('freedom_to_make_life_choices');
+            const corruptionIndex = initialDisplayKeysOrder.indexOf('perceptions_of_corruption');
+            if (freedomIndex !== -1 && corruptionIndex !== -1) {
+                [initialDisplayKeysOrder[freedomIndex], initialDisplayKeysOrder[corruptionIndex]] = 
+                [initialDisplayKeysOrder[corruptionIndex], initialDisplayKeysOrder[freedomIndex]];
+            }
         }
+        
+        // Always use the initialDisplayKeysOrder to set up the axes
+        displayKeysOrder = [...initialDisplayKeysOrder];
 
         parallelCoordX.domain(displayKeysOrder);
         
@@ -515,6 +526,9 @@ function createParallelCoordinates(initialData, containerId) {
                 : dataYear >= parseInt(startYear) && dataYear <= parseInt(endYear);
         });
 
+        // Reset displayKeysOrder to the initial order before updating
+        displayKeysOrder = [...initialDisplayKeysOrder];
+        
         updateVisualization(filteredData);
     }
 
@@ -538,7 +552,15 @@ function createParallelCoordinates(initialData, containerId) {
         data = updatedData;
         cachedLinePaths.clear();
         averagedData = calculateAverages(data, keys);
-        // Don't reinitialize scales here
+        
+        // Ensure displayKeysOrder maintains the initial order
+        displayKeysOrder = [...initialDisplayKeysOrder];
+        
+        parallelCoordX.domain(displayKeysOrder);
+        
+        // Reinitialize scales with the updated data
+        initializeScales(data);
+        
         const { svg, linesGroup } = setup();
         drawLines(averagedData, linesGroup);
     }
