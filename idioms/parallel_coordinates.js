@@ -182,9 +182,7 @@ function createParallelCoordinates(initialData, containerId) {
     }
 
     function drawLines(filteredData, linesGroup) {
-        const dataToRender = selectedRegion 
-            ? averagedData.filter(d => d.region === hoveredRegion)
-            : filteredData;
+        const dataToRender = filteredData;
 
         const totalPopulation = memoizedTotalPopulation(initialData);
         const color = getColorScale(totalPopulation);
@@ -210,7 +208,7 @@ function createParallelCoordinates(initialData, containerId) {
                 return color(totalPopulation.get(d.region));
             })
             .attr("stroke-width", d => selectedRegion && d.region === selectedRegion ? 2 : 1.5)
-            .attr("opacity", d => 1);
+            .attr("opacity", d => selectedRegion ? (d.region === selectedRegion ? 1 : 0.5) : 1);
 
         setupLineInteractions(linesEnter.merge(lines), filteredData);
     }
@@ -387,7 +385,8 @@ function createParallelCoordinates(initialData, containerId) {
                 hoveredRegion = d.region;
                 d3.select(event.target)
                     .attr("stroke-width", 3)
-                    .attr("stroke", "#FF4500");
+                    .attr("stroke", "#FF4500")
+                    .attr("opacity", 1);  // Ensure full opacity on hover
 
                 // Publish hover event for choropleth map
                 LinkedCharts.publish('regionHover', d.region);
@@ -475,7 +474,7 @@ function createParallelCoordinates(initialData, containerId) {
             })
             .attr("opacity", () => {
                 if (selectedRegion) {
-                    return d.region === selectedRegion ? 1 : 0.1;
+                    return d.region === selectedRegion ? 1 : 0.5;
                 }
                 return 1; 
             });
