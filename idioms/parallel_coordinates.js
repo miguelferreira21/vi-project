@@ -17,7 +17,7 @@ function createParallelCoordinates(initialData, containerId) {
         'gdp_per_capita': 'GDP per Capita (GK$)',
         'social_support': 'Social Support',
         'generosity': 'Generosity',
-        'temperature': 'Temperature',
+        'temperature': 'Temperature (ºC)',
         'fertility_rate': 'Fertility rate'
     };
 
