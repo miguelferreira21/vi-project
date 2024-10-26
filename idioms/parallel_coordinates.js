@@ -160,22 +160,31 @@ function createParallelCoordinates(initialData, containerId) {
 
     function initializeScales(data) {
         keys.forEach(key => {
+            let extent;
             if (key === 'temperature') {
                 const validData = data.filter(d => +d[key] !== -999.0);
-                y[key] = d3.scaleLinear()
-                    .domain([d3.min(validData, d => +d[key]), d3.max(validData, d => +d[key])])
-                    .range([height, 0]);
+                extent = d3.extent(validData, d => +d[key]);
             } else if (key === 'fertility_rate') {
-                y[key] = d3.scaleLinear()
-                    .domain([0, d3.max(data, d => +d[key])])
-                    .range([height, 0]);
+                extent = [0, d3.max(data, d => +d[key])];
             } else {
-                const extent = d3.extent(data, d => +d[key]);
-                const padding = (extent[1] - extent[0]) * 0.05;
-                y[key] = d3.scaleLinear()
-                    .domain([extent[0] - padding, extent[1] + padding])
-                    .range([height, 0]);
+                extent = d3.extent(data, d => +d[key]);
+                // Ensure minimum is not negative for non-temperature attributes
+                extent[0] = Math.max(0, extent[0]);
             }
+
+            // Add padding to the extent
+            const padding = (extent[1] - extent[0]) * 0.05;
+            const paddedExtent = [extent[0] - padding, extent[1] + padding];
+
+            // Ensure the lower bound is not negative for non-temperature attributes
+            if (key !== 'temperature') {
+                paddedExtent[0] = Math.max(0, paddedExtent[0]);
+            }
+
+            y[key] = d3.scaleLinear()
+                .domain(paddedExtent)
+                .range([height, 0])
+                .nice(); // This will round the domain to nice values
         });
     }
 
@@ -210,16 +219,21 @@ function createParallelCoordinates(initialData, containerId) {
         const lines = linesGroup.selectAll("path")
             .data(dataToRender, d => d.region);
 
-        lines.exit().remove();
+        lines.exit()
+            .transition()
+            .duration(10)
+            .attr("opacity", 0)
+            .remove();
 
         const linesEnter = lines.enter()
             .append("path")
             .attr("fill", "none")
-            .attr("d", d => linePath(d));
+            .attr("d", d => linePath(d))
+            .attr("opacity", 0);
 
         const allLines = lines.merge(linesEnter)
             .transition()
-            .duration(60)
+            .duration(30)
             .attr("d", d => linePath(d))
             .attr("stroke", d => {
                 if (selectedRegion && d.region === selectedRegion) {
@@ -300,7 +314,15 @@ function createParallelCoordinates(initialData, containerId) {
             .attr("class", "axis")
             .attr("transform", d => `translate(${parallelCoordX(d)},0)`)
             .each(function(d) { 
-                d3.select(this).call(d3.axisLeft().scale(y[d]));
+                const scale = y[d];
+                const domain = scale.domain();
+                const ticks = scale.ticks(5); // Get 5 suggested tick values
+                
+                // Ensure the first and last ticks are always the domain boundaries
+                if (ticks[0] > domain[0]) ticks.unshift(domain[0]);
+                if (ticks[ticks.length - 1] < domain[1]) ticks.push(domain[1]);
+                
+                d3.select(this).call(d3.axisLeft(scale).tickValues(ticks));
             });
 
         setupAxisTitles(axes);
