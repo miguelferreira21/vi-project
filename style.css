@@ -10,6 +10,11 @@ body {
   display: flex;
   justify-content: center;
   align-items: center;
+  background-color: #f5f0f0; /* Darker grey background for the body */
+  min-height: 100vh;
+  width: 100%;
+  margin: 0;
+  padding: 0;
 }
 
 .container {
@@ -26,6 +31,7 @@ body {
   max-height: 100%;
   max-width: 100%;
   box-sizing: border-box;
+  padding: 10px; /* Add padding around the entire grid */
 }
 
 .Choropleth {
@@ -49,7 +55,11 @@ body {
 }
 
 .TBD {
-  grid-area: TBD;
+  position: relative; /* Enable positioning for child elements */
+  display: flex;
+  justify-content: space-between; /* Spreads content to edges */
+  align-items: center;
+  padding: 20px; /* Add some padding to prevent logo from touching edges */
 }
 
 .placeholder1 {
@@ -77,19 +87,25 @@ body {
 }
 
 .Choropleth, .Rooftop_Matrix, .Parallel_coordinates, .LineChart, .Filters, .TBD {
-  border: 1px solid black;
+  border: 1px none black;
+  border-radius: 10px; /* Adds rounded corners */
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); /* Adds a subtle shadow all around */
+  background-color: #ffffff; /* White background for containers */
 }
 
 .tbd-text {
   font-family: Arial, sans-serif;
   font-size: 7vh;
   color: black;
-  text-align: center; /* Centers the text horizontally */
-  line-height: 100%; /* Adjust the line-height to center the text vertically */
-  height: 100%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
+}
+
+.ist-logo {
+  position: absolute;
+  top: 7px;
+  right: 40px; /* Increased from 20px to move it more to the left */
+  height: 16vh;
+  width: auto;
+  object-fit: contain;
 }
 
 /* New styles for the parallel coordinates chart */
