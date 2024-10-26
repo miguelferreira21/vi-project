@@ -213,13 +213,16 @@ function createFilters(data, containerId) {
             allAtMax = allAtMax && filter.rightValue === filter.finish && filter.leftValue == filter.start;
         });
 
-        // If filters aren't used and all countries are selected
-        // Keep the original data
+        // Publish the filtered data
         if (allAtMax && selectedRegions.length === regions.length) {
             LinkedCharts.publish('dataUpdate', data);
         } else {
             LinkedCharts.publish('dataUpdate', filteredData);
         }
+
+        // **Reset regionSelection and countrySelection to null after filtering**
+        LinkedCharts.publish('regionSelection', null);
+        LinkedCharts.publish('countrySelection', null);
     }
 
     // Create SVG elements for each slider's bar

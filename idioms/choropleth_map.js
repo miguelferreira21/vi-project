@@ -3,6 +3,9 @@ let currentData, initialExtent;
 let tooltip;
 let selectedCountry = null;
 let width, height, zoom, initialTransform, projection, path;
+let selectedRegion = null;
+let isHandlingCountrySelection = false;
+
 
 function createChoroplethMap(data, containerId) {
   currentData = data;
@@ -92,9 +95,9 @@ function createChoroplethMap(data, containerId) {
     LinkedCharts.subscribe('yearRange', handleYearRangeUpdate);
     LinkedCharts.subscribe('dataUpdate', handleDataUpdate);
     LinkedCharts.subscribe('parallelCoordinatesFilter', handleParallelCoordinatesFilter);
-    LinkedCharts.subscribe('countrySelection', handleCountrySelectionFromParallel);
-    LinkedCharts.subscribe('countryHover', handleCountryHover); // Add this line
-
+    LinkedCharts.subscribe('countrySelection', handleCountrySelectionFromParallel); // will never be used
+    LinkedCharts.subscribe('regionHover', handleRegionHover);
+    LinkedCharts.subscribe('regionSelection', handleRegionSelection);
 
     // Create static legend based on initial data
     createStaticLegend(currentData, width, height);
@@ -135,88 +138,178 @@ function handleParallelCoordinatesFilter(filteredData) {
   updateChoroplethMap(filteredData);
 }
 
-    function updateChoroplethMap(data) {
-        // Data pre-processing
-        const processedData = preprocessData(data);
+function updateChoroplethMap(data) {
+  const processedData = preprocessData(data);
+  
+  function getCountriesInRegion(region, data) {
+      return [...new Set(data.filter(d => d.region === region).map(d => d.country))];
+  }
+  
+  const countriesInRegion = selectedRegion ? getCountriesInRegion(selectedRegion, currentData) : [];
+  
+  mapGroup.selectAll("path")
+      .attr("fill", d => {
+          if (!d || !d.properties) {
+              return "#ccc";
+          }
+          const countryData = processedData.find(item => item.country === d.properties.name);
+          return countryData ? colorScale(countryData.happiness_score) : "#ccc";
+      })
+      .attr("stroke", d => {
+          if (!d || !d.properties) return "#fff";
+          
+          if (selectedCountry && d.properties.name === selectedCountry) {
+              return "#8B0000";
+          }
+          if (selectedRegion && countriesInRegion.includes(d.properties.name)) {
+              return "#8B0000";
+          }
+          return "#fff";
+      })
+      .attr("stroke-width", d => {
+          if (!d || !d.properties) return 0.25;
+          
+          if (selectedCountry && d.properties.name === selectedCountry) {
+              return 0.75;
+          }
+          if (selectedRegion && countriesInRegion.includes(d.properties.name)) {
+              return 0.5;
+          }
+          return 0.25;
+      })
+      .on("mouseover", function(event, d) {
+          if (!d || !d.properties) return;
+          const countryData = processedData.find(item => item.country === d.properties.name);
+          if (!countryData) return;
+          
+          d3.select(this)
+              .raise()
+              .attr("stroke", "#000")
+              .attr("stroke-width", 0.5);
+              
+          showTooltip(event, d, countryData);
+          LinkedCharts.publish('countryHover', d.properties.name);
+      })
+      .on("mouseout", function(event, d) {
+          if (!d || !d.properties) return;
+          
+          d3.select(this)
+              .attr("stroke", d => {
+                  if (selectedCountry && d.properties.name === selectedCountry) {
+                      return "#8B0000";
+                  }
+                  if (selectedRegion && countriesInRegion.includes(d.properties.name)) {
+                      return "#8B0000";
+                  }
+                  return "#fff";
+              })
+              .attr("stroke-width", d => {
+                  if (selectedCountry && d.properties.name === selectedCountry) {
+                      return 0.75;
+                  }
+                  if (selectedRegion && countriesInRegion.includes(d.properties.name)) {
+                      return 0.5;
+                  }
+                  return 0.25;
+              })
+              .filter(d => !selectedCountry || d.properties.name !== selectedCountry)
+              .lower();
+              
+          hideTooltip();
+      })
+      .on("click", function(event, d) {
+          if (!d || !d.properties) return;
+          const countryData = processedData.find(item => item.country === d.properties.name);
+          if (!countryData) return;
+          const countryName = d.properties.name;
+          handleCountrySelection(countryName, processedData);
+          hideTooltip();
+      });
+}
 
-        // Update map colors and event listeners
-        mapGroup.selectAll("path")
-            .attr("fill", d => {
-                if (!d || !d.properties) {
-                    return "#ccc";
-                }
-                const countryData = processedData.find(item => item.country === d.properties.name);
-                return countryData ? colorScale(countryData.happiness_score) : "#ccc";
-            })
-            .attr("stroke", d => {
-                return d.properties && d.properties.name === selectedCountry ? "#8B0000" : "#fff"; // Dark red for selected country
-            })
-            .attr("stroke-width", d => {
-                return d.properties && d.properties.name === selectedCountry ? 0.75 : 0.25; // Maintain stroke width for selected country
-            })
-            .on("mouseover", function(event, d) {
-                if (!d || !d.properties) return;
-                const countryData = processedData.find(item => item.country === d.properties.name);
-                if (!countryData) return;
-                d3.select(this)
-                  .raise()
-                  .attr("stroke", "#000")
-                  .attr("stroke-width", d.properties.name === selectedCountry ? 0.75 : 0.50);
-                showTooltip(event, d, countryData);
-                LinkedCharts.publish('countryHover', d.properties.name);
-            })
-            .on("mousemove", function(event, d) {
-                if (!d || !d.properties) return;
-                const countryData = processedData.find(item => item.country === d.properties.name);
-                if (!countryData) return;
-                updateTooltipPosition(event);
-            })
-            .on("mouseout", function(event, d) {
-                d3.select(this)
-                  .attr("stroke", d.properties && d.properties.name === selectedCountry ? "#8B0000" : "#fff")
-                  .attr("stroke-width", d.properties && d.properties.name === selectedCountry ? 0.75 : 0.25)
-                  .filter(d => d.properties && d.properties.name !== selectedCountry)
-                  .lower();
-                hideTooltip();
-            })
-            .on("click", function(event, d) {
-                if (!d || !d.properties) return;
-                const countryData = processedData.find(item => item.country === d.properties.name);
-                if (!countryData) return;
-                const countryName = d.properties.name;
-                handleCountrySelection(countryName, processedData);
-                zoomToCountry(d, width, height);
-                hideTooltip();
-            });
-    }
+function handleCountrySelection(countryName, data) {
+  // Set the flag to prevent circular updates
+  isHandlingCountrySelection = true;
+  
+  console.log("Selected country:", selectedCountry, "Country name:", countryName); // Debug log
+  
+  // Clear region selection regardless
+  selectedRegion = null;
+  LinkedCharts.publish('regionSelection', null);
+  
+  if (selectedCountry === countryName) {
+      console.log("Deselecting country"); // Debug log
+      selectedCountry = null;
+      LinkedCharts.publish('countrySelection', null);
+  } else {
+      console.log("Selecting new country"); // Debug log
+      selectedCountry = countryName;
+      const countryData = data.find(item => item.country === countryName);
+      LinkedCharts.publish('countrySelection', countryData);
+  }
 
-    function handleCountrySelection(countryName, data) {
-        if (selectedCountry === countryName) {
-            // Deselect the country
-            selectedCountry = null;
-            LinkedCharts.publish('countrySelection', null);
-        } else {
-            // Select the country
-            selectedCountry = countryName;
-            const countryData = data.find(item => item.country === countryName);
-            LinkedCharts.publish('countrySelection', countryData);
-        }
-        updateChoroplethMap(currentData); // Update the map with the current data
-    }
+  // Update the visualization
+  updateChoroplethMap(currentData);
+  
+  // Reset the flag after handling is complete
+  isHandlingCountrySelection = false;
+}
 
     function handleCountrySelectionFromParallel(selection) {
-        if (selection && selection.country) {
-            selectedCountry = selection.country;
-            const countryFeature = mapGroup.selectAll("path").filter(d => d.properties && d.properties.name === selectedCountry).datum();
-            if (countryFeature) {
-                zoomToCountry(countryFeature, width, height);
-            }
-        } else {
-            selectedCountry = null;
-            resetZoom();
-        }
-        updateChoroplethMap(currentData);
+        // Remove this function as it's no longer needed
     }
+
+    function handleRegionHover(region) {
+      function getCountriesInRegion(region, data) {
+        return data.filter(d => d.region === region).map(d => d.country);
+      }
+  
+      const hoveredCountriesInRegion = region ? getCountriesInRegion(region, currentData) : [];
+      const selectedCountriesInRegion = selectedRegion ? getCountriesInRegion(selectedRegion, currentData) : [];
+  
+      mapGroup.selectAll("path")
+        .attr("stroke", d => {
+          if (d.properties) {
+            if (d.properties.name === selectedCountry) {
+              return "#8B0000"; // Selected country
+            } else if (selectedCountriesInRegion.includes(d.properties.name)) {
+              return "#8B0000"; // Selected region
+            } else if (hoveredCountriesInRegion.includes(d.properties.name)) {
+              return "#000"; // Hovered region
+            }
+          }
+          return "#fff"; // Default
+        })
+        .attr("stroke-width", d => {
+          if (d.properties) {
+            if (d.properties.name === selectedCountry) {
+              return 0.75; // Selected country
+            } else if (selectedCountriesInRegion.includes(d.properties.name)) {
+              return 0.5; // Selected region
+            } else if (hoveredCountriesInRegion.includes(d.properties.name)) {
+              return 0.5; // Hovered region
+            }
+          }
+          return 0.25; // Default
+        });
+    }
+
+    function handleRegionSelection(selection) {
+      // Only clear country selection if we're not currently handling a country selection
+      if (!isHandlingCountrySelection) {
+          console.log("Clearing country selection");
+          selectedCountry = null;
+          LinkedCharts.publish('countrySelection', null);
+      }
+      
+      if (selection && selection.region) {
+          selectedRegion = selection.region;
+      } else {
+          selectedRegion = null;
+      }
+      
+      updateChoroplethMap(currentData);
+  }
 
 
     function createStaticLegend(initialData, width, height) {
@@ -386,6 +479,10 @@ function handleParallelCoordinatesFilter(filteredData) {
           initialTransform
         );
     }
+
+
+
+
 
 
 
