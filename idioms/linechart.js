@@ -219,7 +219,9 @@ function updateChart(startYear, endYear) {
     }
 
 function updateRangeDisplay(startYear, endYear) {
-    if (startYear === endYear) {
+    if (startYear === Infinity || endYear === Infinity) {
+        rangeDisplay.text('No data');
+    } else if (startYear === endYear) {
         rangeDisplay.text(`${startYear}`);
     } else {
         rangeDisplay.text(`${startYear} - ${endYear}`);

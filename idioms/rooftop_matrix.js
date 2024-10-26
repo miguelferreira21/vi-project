@@ -100,7 +100,7 @@ function createRooftopMatrix(data, containerId) {
             .style("stroke", "black")
             .style("stroke-width", 1)
             .merge(cells)
-            .style("fill", d => colorScale(d.value));
+            .style("fill", d => isNaN(d.value) ? "white" : colorScale(d.value));
 
         cells.exit().remove();
 
@@ -132,7 +132,7 @@ function createRooftopMatrix(data, containerId) {
                 
                     // Show tooltip
                     tooltip.transition().duration(200).style("opacity", 1);
-                    tooltip.html(`Correlation: ${d.value.toFixed(2)}<br>`)
+                    tooltip.html(isNaN(d.value) ? "No data" : `Correlation: ${d.value.toFixed(2)}<br>`)
                         .style("left", (event.pageX + 10) + "px")
                         .style("top", (event.pageY - 10) + "px");
                 
@@ -187,18 +187,15 @@ function createRooftopMatrix(data, containerId) {
                 .attr("font-size", "16px")
                 .attr("font-weight", "bold");
         }
-        
-        let titleText;
-        if (selectedRegions && selectedRegions.length > 0) {
-            titleText = `Correlations for ${selectedRegions.join(", ")}`;
+        if (filteredData.length === 0) {
+            title.text("No data").style("font-size", height*0.05);
         } else if (selectedCountry) {
-            titleText = `Correlations for ${selectedCountry}`;
+            title.text(`Correlations for ${selectedCountry}`).style("font-size", height*0.05);
+        } else if (selectedRegions && selectedRegions.length > 0) {
+            title.text(`Correlations for ${selectedRegions.join(", ")}`).style("font-size", height*0.05);
         } else {
-            titleText = "Global Correlations";
+            title.text("Global Correlations").style("font-size", height*0.05);
         }
-        
-        title.text(titleText)
-            .style("font-size", height*0.05);
     }
 
     // Initial update with all data

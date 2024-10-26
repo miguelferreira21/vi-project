@@ -8,8 +8,8 @@ function createFilters(data, containerId) {
     const containerHeight = d3.select(containerId).node().clientHeight;
 
     // Calculate width and height based on container dimensions
-    const width = containerWidth * 0.25 - margin.left - margin.right;
-    const height = containerHeight - margin.top - margin.bottom; // Full height minus margins
+    const width = containerWidth * 0.20;
+    const height = containerHeight; // Full height minus margins
     const lineThickness = 2;
 
     // Convert values to numbers
@@ -51,22 +51,24 @@ function createFilters(data, containerId) {
     const container = d3.select(containerId)
         .style('display', 'flex')
         .style('flex-direction', 'row')
-        .style('gap', "20px") // Fixed gap to prevent excessive spacing
-        .style('height', `${containerHeight}px`) // Ensure container has defined height
+        .style('gap', "1%") // Fixed gap to prevent excessive spacing
+        .style('height', `${containerHeight}`) // Ensure container has defined height
         .style('overflow', 'hidden'); // Prevent overflow
 
     // Create a container for the sliders
     const slidersContainer = container.append('div')
         .style('display', 'flex')
         .style('flex-direction', 'column')
-        .style('gap', "20px")
-        .style('margin-top', '10px')
-        .style('margin-left', '40px')  // Add left margin to move sliders to the right
+        .style('gap', "2%")
+        .style('margin-top', '1.5%')
+        .style('margin-bottom', '1.5%')
+        .style('margin-left', '1.5%')  // Add left margin to move sliders to the right
         .style('flex', '1 1 auto')
-        .style('height', '100%');
+        .style('height', '90%')
+        .style('width', '100%');
 
     // Calculate Dynamic Gap for Checkbox Container
-    const totalCheckboxItems = regions.length + 1; // Including "Select All"
+    const totalCheckboxItems = regions.length + 2; // Including "Select All"
     const minGap = 8;
     const maxGap = 30;
     const calculatedGap = Math.max(minGap, Math.min(maxGap, (height - 20) / totalCheckboxItems));
@@ -75,11 +77,13 @@ function createFilters(data, containerId) {
     const checkboxContainer = container.append('div')
         .style('display', 'flex')
         .style('flex-direction', 'column')
-        .style('margin-top', '10px')
-        .style('gap', `${calculatedGap}px`) // Dynamic gap based on container's height
-        .style('width', '100%')
-        .style('flex', '0 0 auto')
-        .style('padding', '10px'); // Add some inner spacing
+        .style('gap', '2%') // Dynamic gap based on container's height
+        .style('margin-top', '1.5%')
+        .style('margin-bottom', '1.5%')
+        .style('margin-right', '1.5%')
+        .style('width', '65%')
+        .style('height', '90%')
+        .style('flex', '0 0 auto');
 
     // Scale for average happiness bars
     const xScale = d3.scaleLinear()
@@ -90,11 +94,10 @@ function createFilters(data, containerId) {
     const selectAllRow = checkboxContainer.append('div')
         .style('display', 'flex')
         .style('align-items', 'center')
-        .style('height', (height / regions.length) + 'px');
+        .style('height', '6%');
 
     // Add the "Select All" checkbox
     const selectAllCheckbox = selectAllRow.append('input')
-        .style('transform', "scale(" + height / 350 + ")")
         .attr('type', 'checkbox')
         .attr('checked', true)  // All checked by default
         .on('change', function () {
@@ -114,24 +117,28 @@ function createFilters(data, containerId) {
     // Add the label for "Select All"
     selectAllRow.append('span')
         .style('font-family', 'Arial')
-        .style('width', (width * 0.9) + "px")
+        .style('font-size', height*0.05 + 'px')
+        .style('font-weight', 'bold')
+        .style('width', '50%')
         .style('text-align', 'left')
         .style('white-space', 'normal')
         .text('Select All');
+
+    // Calculate the height for each checkbox item based on the totalCheckboxItems
+    const checkboxHeight = (90 / totalCheckboxItems) + "%"; // Use 90% of container height
 
     // Create checkboxes for each region
     regions.forEach(region => {
         const checkboxRow = checkboxContainer.append('div')
             .style('display', 'flex')
             .style('align-items', 'center')
-            .style('height', '1px');
+            .style('height', checkboxHeight)  // Use percentage height
 
         // Add the region checkbox
         checkboxRow.append('input')
             .attr('type', 'checkbox')
             .attr('class', 'region-checkbox')  // Add class to easily select all region checkboxes
             .attr('checked', true)  // All checked by default
-            .style('transform', "scale(" + height / 350 + ")")
             .on('change', function () {
                 // Update the selected regions array
                 selectedRegions = [];
@@ -154,8 +161,8 @@ function createFilters(data, containerId) {
         // Add the label for the region checkbox
         checkboxRow.append('span')
             .style('font-family', 'Arial')
-            .style('font-size', "14px")
-            .style('width', (2 * width) + "px")
+            .style('font-size', height*0.04 + 'px')
+            .style('width', "50%")
             .style('text-align', 'left')
             .style('white-space', 'normal')
             .text(region);
@@ -166,13 +173,12 @@ function createFilters(data, containerId) {
         // Add the bar for the average happiness next to the checkbox
         checkboxRow.append('div')
             .datum(avgHappiness.toFixed(2))
-            .style('width', `${xScale(avgHappiness)}px`)
+            .style('width', `${xScale(avgHappiness)*0.35}%`)
             .style('height', '10px')  // Adjust the height of the bar as needed
             .style('background-color', 'steelblue')
-            .style('margin-left', '20px')
+            .style('margin-left', '5%')
             .on('mouseover', handleMouseOverBar)
             .on('mouseout', handleMouseOutBar);
-
     });
 
     function filterData() {
@@ -225,32 +231,33 @@ function createFilters(data, containerId) {
         LinkedCharts.publish('countrySelection', null);
     }
 
+    const totalSliderItems = filtersData.length;
+    const sliderHeight = (90 / totalSliderItems) + "%";
+
     // Create SVG elements for each slider's bar
     filtersData.forEach(filter => {
-        const svgHeight = (height - margin.top - margin.bottom - (filtersData.length - 1) * 20) / filtersData.length; // Distribute height evenly with gaps
         const svg = slidersContainer.append('svg')
-            .attr('width', width + margin.left + margin.right)
-            .attr('height', svgHeight + margin.top + margin.bottom)
-            .attr('viewBox', `0 0 ${width + margin.left + margin.right} ${svgHeight + margin.top + margin.bottom}`)
-            .style('max-height', `${svgHeight + margin.top + margin.bottom}px`); // Ensure SVG respects height
+            .attr('width', '100%')
+            .attr('height', sliderHeight)
+            .style('max-height', sliderHeight);// Ensure SVG respects height
 
         // Create a title above each slider's bar
         svg.append('text')
-            .attr('x', (width + margin.left + margin.right) / 2)
-            .attr('y', margin.top / 2)
+            .attr('x', '50%')
+            .attr('y', '30%')
             .attr('text-anchor', 'middle')
-            .attr('font-size', '14px')
+            .attr('font-size', width*0.09 + 'px')
             .style("font-family", "Arial")
             .text(filter.title);
 
         // Create a group element to hold the bar and slider
         const g = svg.append('g')
-            .attr('transform', `translate(${margin.left}, ${svgHeight / 2 + margin.top})`);
+            .attr('transform', `translate(0, ${svg.node().clientHeight * 0.6})`);
 
         // Create a thin line as the slider track
         g.append('line')
-            .attr('x1', 0)
-            .attr('x2', width)
+            .attr('x1', '15%')
+            .attr('x2', '85%')
             .attr('y1', 0)
             .attr('y2', 0)
             .attr('stroke', '#ddd')
@@ -258,20 +265,20 @@ function createFilters(data, containerId) {
 
         // Add filter's start value
         g.append('text')
-            .attr('x', -20)  // Move start label slightly more to the left
-            .attr('y', 5)
+            .attr('x', '12%')  // Move start label slightly more to the left
+            .attr('y', '5%')
             .attr('text-anchor', 'end')
             .style("font-family", "Arial")
-            .style("font-size", "12px")
+            .style("font-size", width*0.07 + 'px')
             .text(filter.start);
 
         // Add filter's end value
         g.append('text')
-            .attr('x', width + 20)  // Move end label slightly more to the right
-            .attr('y', 5)
+            .attr('x', '88%')  // Move end label slightly more to the right
+            .attr('y', '5%')
             .attr('text-anchor', 'start')
             .style("font-family", "Arial")
-            .style("font-size", "12px")
+            .style("font-size", width*0.07 + 'px')
             .text(filter.finish);
 
         // Create a tooltip div (ensure it's only created once)
@@ -290,7 +297,7 @@ function createFilters(data, containerId) {
 
         // Calculate the scale for mapping slider position to values
         const scale = d3.scaleLinear()
-            .domain([0, width])
+            .domain([slidersContainer.node().clientWidth * 0.15, slidersContainer.node().clientWidth * 0.85])
             .range([filter.start, filter.finish]);
 
         // Create a drag behavior for the sliders
@@ -298,39 +305,41 @@ function createFilters(data, containerId) {
             .on('drag', function (event) {
                 // Get the current slider being dragged
                 const currentSlider = d3.select(this);
+                const isLeftSlider = currentSlider.attr('data-type') === 'left';
 
-                // Get the current positions of both sliders
-                const leftCx = parseFloat(leftSlider.attr('cx'));
-                const rightCx = parseFloat(rightSlider.attr('cx'));
+                // Get the position of the other slider
+                const otherSlider = isLeftSlider ? d3.select('[data-type="right"]') : d3.select('[data-type="left"]');
+                const otherCx = parseFloat(otherSlider.attr('cx'));
 
                 // Calculate the new x position based on the drag
-                let newCx = Math.max(0, Math.min(width, event.x));
+                let newCx = Math.max(slidersContainer.node().clientWidth * 0.15, 
+                                    Math.min(slidersContainer.node().clientWidth * 0.85, event.x));
 
-                // Determine if dragging the left or right slider
-                if (currentSlider.attr('data-type') === 'left') {
-                    // Left slider dragged
-                    // Prevent left slider from going beyond the right slider
-                    newCx = Math.min(newCx, rightCx - 6); // Subtract radius to prevent overlap
+                // Prevent overlapping
+                if (isLeftSlider) {
+                    // If dragging left slider, ensure it doesn't go past the right slider
+                    newCx = Math.min(newCx, otherCx*0.95);
                     filter.leftValue = scale(newCx);
                 } else {
-                    // Right slider dragged
-                    // Prevent right slider from going before the left slider
-                    newCx = Math.max(newCx, leftCx + 6); // Add radius to prevent overlap
+                    // If dragging right slider, ensure it doesn't go before the left slider
+                    newCx = Math.max(newCx, otherCx*0.05);
                     filter.rightValue = scale(newCx);
                 }
 
                 // Update the position of the currently dragged slider
                 currentSlider.attr('cx', newCx);
 
-                // Update data
+                // Update data with new filter values
                 filterData();
             });
 
+
+
         // Create the right slider
         const rightSlider = g.append('circle')
-            .attr('cx', width)
+            .attr('cx', slidersContainer.node().clientWidth * 0.85)
             .attr('cy', 0)
-            .attr('r', 6)
+            .attr('r', width*0.04)
             .attr('fill', '#333')
             .attr('data-type', 'right') // Add data attribute to identify slider type
             .style('cursor', 'pointer')
@@ -340,9 +349,9 @@ function createFilters(data, containerId) {
 
         // Create the left slider
         const leftSlider = g.append('circle')
-            .attr('cx', 0)
+            .attr('cx', slidersContainer.node().clientWidth * 0.15)
             .attr('cy', 0)
-            .attr('r', 6)
+            .attr('r', width*0.04)
             .attr('fill', '#333')
             .attr('data-type', 'left') // Add data attribute to identify slider type
             .style('cursor', 'pointer')
