@@ -91,14 +91,14 @@ function createParallelCoordinates(initialData, containerId) {
             .range([legendHeight, 0]);
 
         const legendAxis = d3.axisRight(legendScale)
-            .ticks(5)
+            .tickValues([extent[0], ...d3.ticks(extent[0], extent[1], 3), extent[1]])
             .tickFormat(d => {
                 if (d >= 1e9) {
                     return `${d3.format(".1f")(d / 1e9)}B`;
                 } else if (d >= 1e6) {
-                    return `${d3.format(".0f")(d / 1e6)}M`;
+                    return `${d3.format(".1f")(d / 1e6)}M`;
                 } else if (d >= 1e3) {
-                    return `${d3.format(".0f")(d / 1e3)}K`;
+                    return `${d3.format(".1f")(d / 1e3)}K`;
                 } else {
                     return d3.format(".0f")(d);
                 }
@@ -126,7 +126,7 @@ function createParallelCoordinates(initialData, containerId) {
 
         legend.append("g")
             .attr("transform", `translate(${legendWidth}, 0)`)
-            .style("font-size", height * 0.03)
+            .style("font-size", height * 0.025)
             .call(legendAxis);
 
         legend.append("text")
@@ -435,11 +435,7 @@ function createParallelCoordinates(initialData, containerId) {
             .duration(200)
             .style("opacity", 0.9);
         
-        tooltip.html(`
-            <strong>${d.region}</strong><br/>
-            Happiness Score: ${d.happiness_score.toFixed(2)}<br/>
-            Regional Population: ${d.population ? d3.format(",")(Math.round(d.population)) : 'N/A'}
-        `)
+        tooltip.html(createTooltipContent(d))
         .style("left", (event.pageX + 10) + "px")
         .style("top", (event.pageY - 28) + "px");
     }
@@ -496,12 +492,10 @@ function createParallelCoordinates(initialData, containerId) {
     }
 
     function calculateTotalPopulationByRegion(data) {
-        return new Map(Array.from(
-            d3.rollup(data, 
-                v => d3.sum(v, d => +d.population),
-                d => d.region
-            )
-        ));
+        return d3.rollup(data, 
+            v => d3.max(v, d => +d.population), // Take the maximum population for each region
+            d => d.region
+        );
     }
 
     function handleYearRangeUpdate(yearRange) {
@@ -537,6 +531,31 @@ function createParallelCoordinates(initialData, containerId) {
         cachedLinePaths.clear();
         const { svg, linesGroup } = setup();
         drawLines(averagedData, linesGroup);
+    }
+
+    function createTooltipContent(d) {
+        const totalPopulation = memoizedTotalPopulation(data);
+        const regionPopulation = totalPopulation.get(d.region);
+        
+        let content = `<strong>${d.region}</strong><br>`;
+        content += `Regional Population: ${formatPopulation(regionPopulation)}<br>`;
+        content += `Happiness Score: ${d3.format(".2f")(d.happiness_score)}<br>`;
+        
+        
+        return content;
+    }
+
+    function formatPopulation(value) {
+        if (!value || isNaN(value)) return 'N/A';
+        if (value >= 1e9) {
+            return `${d3.format(".2f")(value / 1e9)} billion`;
+        } else if (value >= 1e6) {
+            return `${d3.format(".2f")(value / 1e6)} million`;
+        } else if (value >= 1e3) {
+            return `${d3.format(".2f")(value / 1e3)} thousand`;
+        } else {
+            return d3.format(",")(value);
+        }
     }
 
     LinkedCharts.subscribe('yearRange', handleYearRangeUpdate);
