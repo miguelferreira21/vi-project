@@ -50,6 +50,7 @@ function createParallelCoordinates(initialData, containerId) {
 
     // Add this variable at the top of your createParallelCoordinates function
     let initialDisplayKeysOrder;
+    let userCustomOrder; // New variable to store user's custom order
 
     function setup() {
         container.selectAll("*").remove();
@@ -59,7 +60,7 @@ function createParallelCoordinates(initialData, containerId) {
         if (!initialDisplayKeysOrder) {
             initialDisplayKeysOrder = keys.filter(key => key !== 'population');
             
-            // Modify the displayKeysOrder array to switch the positions
+            // Modify the initialDisplayKeysOrder array to switch the positions
             const freedomIndex = initialDisplayKeysOrder.indexOf('freedom_to_make_life_choices');
             const corruptionIndex = initialDisplayKeysOrder.indexOf('perceptions_of_corruption');
             if (freedomIndex !== -1 && corruptionIndex !== -1) {
@@ -68,8 +69,8 @@ function createParallelCoordinates(initialData, containerId) {
             }
         }
         
-        // Always use the initialDisplayKeysOrder to set up the axes
-        displayKeysOrder = [...initialDisplayKeysOrder];
+        // Use userCustomOrder if it exists, otherwise use initialDisplayKeysOrder
+        displayKeysOrder = userCustomOrder || [...initialDisplayKeysOrder];
 
         parallelCoordX.domain(displayKeysOrder);
         
@@ -221,7 +222,7 @@ function createParallelCoordinates(initialData, containerId) {
 
         lines.exit()
             .transition()
-            .duration(10)
+            .duration(150)
             .attr("opacity", 0)
             .remove();
 
@@ -233,7 +234,7 @@ function createParallelCoordinates(initialData, containerId) {
 
         const allLines = lines.merge(linesEnter)
             .transition()
-            .duration(30)
+            .duration(130)
             .attr("d", d => linePath(d))
             .attr("stroke", d => {
                 if (selectedRegion && d.region === selectedRegion) {
@@ -385,6 +386,9 @@ function createParallelCoordinates(initialData, containerId) {
                 displayKeysOrder.splice(newIndex, 0, draggedKey);
                 parallelCoordX.domain(displayKeysOrder);
                 cachedLinePaths.clear();
+    
+                // Update userCustomOrder to reflect the new order
+                userCustomOrder = [...displayKeysOrder];
     
                 // Use a requestAnimationFrame to ensure DOM updates are synchronized
                 requestAnimationFrame(() => {
@@ -575,8 +579,8 @@ function createParallelCoordinates(initialData, containerId) {
         cachedLinePaths.clear();
         averagedData = calculateAverages(data, keys);
         
-        // Ensure displayKeysOrder maintains the initial order
-        displayKeysOrder = [...initialDisplayKeysOrder];
+        // Use userCustomOrder if it exists, otherwise use initialDisplayKeysOrder
+        displayKeysOrder = userCustomOrder || [...initialDisplayKeysOrder];
         
         parallelCoordX.domain(displayKeysOrder);
         
