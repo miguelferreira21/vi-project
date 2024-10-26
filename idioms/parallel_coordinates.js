@@ -51,9 +51,18 @@ function createParallelCoordinates(initialData, containerId) {
     function setup() {
         container.selectAll("*").remove();
         averagedData = calculateAverages(data, keys);
+        
+        // Modify the displayKeysOrder array to switch the positions
+        const freedomIndex = displayKeysOrder.indexOf('freedom_to_make_life_choices');
+        const corruptionIndex = displayKeysOrder.indexOf('perceptions_of_corruption');
+        if (freedomIndex !== -1 && corruptionIndex !== -1) {
+            [displayKeysOrder[freedomIndex], displayKeysOrder[corruptionIndex]] = 
+            [displayKeysOrder[corruptionIndex], displayKeysOrder[freedomIndex]];
+        }
+
         parallelCoordX.domain(displayKeysOrder);
         
-        initializeScales(averagedData);
+        initializeScales(initialData);
 
         const svg = container.append("svg")
             .attr("width", containerWidth)
@@ -208,7 +217,7 @@ function createParallelCoordinates(initialData, containerId) {
                 return color(totalPopulation.get(d.region));
             })
             .attr("stroke-width", d => selectedRegion && d.region === selectedRegion ? 2 : 1.5)
-            .attr("opacity", d => selectedRegion ? (d.region === selectedRegion ? 1 : 0.5) : 1);
+            .attr("opacity", d => selectedRegion ? (d.region === selectedRegion ? 1 : 0.4) : 1);
 
         setupLineInteractions(linesEnter.merge(lines), filteredData);
     }
@@ -528,6 +537,8 @@ function createParallelCoordinates(initialData, containerId) {
     function updateVisualization(updatedData) {
         data = updatedData;
         cachedLinePaths.clear();
+        averagedData = calculateAverages(data, keys);
+        // Don't reinitialize scales here
         const { svg, linesGroup } = setup();
         drawLines(averagedData, linesGroup);
     }
