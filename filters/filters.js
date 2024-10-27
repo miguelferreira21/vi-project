@@ -133,7 +133,7 @@ function createFilters(data, containerId) {
         .style('white-space', 'normal')
         .text('Select All');
 
-        selectAllRow.append('span')
+    selectAllRow.append('span')
         .style('font-family', 'Arial')
         .style('font-weight', 'bold')
         .style('font-size', height * 0.05 + 'px')
@@ -143,7 +143,8 @@ function createFilters(data, containerId) {
 
     const scaleSvg = selectAllRow.append('svg')
         .attr('width', '35%')
-        .attr('height', height * 0.05 + 'px')
+        .attr('height', height * 0.06 + 'px')
+        .style('margin-bottom', '1%')
         .style('margin-left', '5%');
 
     // Define scale for the ticks, using the width of the scale SVG
