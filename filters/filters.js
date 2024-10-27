@@ -157,8 +157,8 @@ function createFilters(data, containerId) {
     scaleSvg.append('line')
         .attr('x1', '0')
         .attr('x2', '100%')
-        .attr('y1', '10') // Positioning the line vertically
-        .attr('y2', '10')
+        .attr('y1', '100%') // Positioning the line vertically
+        .attr('y2', '100%')
         .attr('stroke', '#000');
 
     // Add Ticks to the Scale
@@ -170,8 +170,8 @@ function createFilters(data, containerId) {
         .attr('class', 'tick')
         .attr('x1', d => `${scale(d)}%`) // Map the tick values to the scale
         .attr('x2', d => `${scale(d)}%`)
-        .attr('y1', '0')
-        .attr('y2', '15') // Length of the ticks
+        .attr('y1', '20%')
+        .attr('y2', '100%') // Length of the ticks
         .attr('stroke', '#000'); // Tick color
 
     // Add tick labels
@@ -181,7 +181,7 @@ function createFilters(data, containerId) {
         .append('text')
         .attr('class', 'tick-label')
         .attr('x', d => `${scale(d) - 3}%`) // Move a bit to the left
-        .attr('y', '7')
+        .attr('y', '80%')
         .attr('text-anchor', 'middle')
         .attr('font-size', height * 0.04 + 'px') // Change font size to make it smaller
         .style('font-family', 'Arial')
