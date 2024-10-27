@@ -266,9 +266,9 @@ function createParallelCoordinates(initialData, containerId) {
         // Get the unique regions from the filtered data
         const visibleRegions = [...new Set(filteredDataForDraw.map(d => d.region))];
         
-        // Publish filtered data to other charts, but only for visible regions
+        // Publish filtered data to other charts, including all countries from visible regions
         if (filteredData.length > 0) {
-            const visibleFilteredData = filteredData.filter(d => visibleRegions.includes(d.region));
+            const visibleFilteredData = data.filter(d => visibleRegions.includes(d.region));
             LinkedCharts.publish('parallelCoordinatesFilter', visibleFilteredData);
         } else {
             LinkedCharts.publish('parallelCoordinatesFilter', data);
@@ -428,6 +428,8 @@ function createParallelCoordinates(initialData, containerId) {
                 d3.select(event.target)
                     .attr("stroke-width", 4)
                     .attr("opacity", 1); // Full opacity on hover
+
+                LinkedCharts.publish('regionHover', d.region);
     
                 // Show the tooltip with region-specific data
                 showTooltip(event, d, tooltip);
@@ -438,6 +440,7 @@ function createParallelCoordinates(initialData, containerId) {
             .on("mouseout", (event, d) => {
                 hoveredRegion = null;
                 resetLineStyle(event.target, d);
+                LinkedCharts.publish('regionHover', null);
                 hideTooltip(tooltip); // Hide the tooltip when mouse leaves
             })
             .on("click", (event, d) => {
@@ -625,3 +628,4 @@ function createParallelCoordinates(initialData, containerId) {
 
     const { svg, linesGroup } = setup();
 }
+
