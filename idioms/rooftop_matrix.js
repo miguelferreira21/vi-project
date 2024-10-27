@@ -37,7 +37,8 @@ function createRooftopMatrix(data, containerId) {
     // Keep track of the current year range and filtered data
     let currentYearRange = { startYear: d3.min(data, d => d.year), endYear: d3.max(data, d => d.year) };
     let currentFilteredData = data;
-    let selectedCountry = null; // Variable to keep track of the selected country
+    let selectedRegions = null; // Variable to store selected regions
+    let selectedCountry = null; // Variable to store selected country
 
     // Create a group for the matrix
     const matrixGroup = svg.append("g").attr("class", "matrix-group");
@@ -46,11 +47,13 @@ function createRooftopMatrix(data, containerId) {
 
     // Function to create/update the matrix cells
     function updateMatrix() {
-        // Apply both year range and other filters
+        // Apply year range filter
         let filteredData = currentFilteredData.filter(d => d.year >= currentYearRange.startYear && d.year <= currentYearRange.endYear);
 
-        // If a country is selected, filter the data for that country
-        if (selectedCountry) {
+        // Apply region or country filter
+        if (selectedRegions && selectedRegions.length > 0) {
+            filteredData = filteredData.filter(d => selectedRegions.includes(d.region));
+        } else if (selectedCountry) {
             filteredData = filteredData.filter(d => d.country === selectedCountry);
         }
 
@@ -172,7 +175,7 @@ function createRooftopMatrix(data, containerId) {
                 }
             });
 
-        // Add a title to show the selected country (if any)
+        // Update the title
         let title = svg.select(".matrix-title");
         if (title.empty()) {
             title = svg.append("text")
@@ -186,10 +189,13 @@ function createRooftopMatrix(data, containerId) {
         }
         if (filteredData.length === 0) {
             title.text("No data").style("font-size", height*0.05);
+        } else if (selectedCountry) {
+            title.text(`Correlations for ${selectedCountry}`).style("font-size", height*0.05);
+        } else if (selectedRegions && selectedRegions.length > 0) {
+            title.text(`Correlations for ${selectedRegions.join(", ")}`).style("font-size", height*0.05);
         } else {
-            title.text(selectedCountry ? `Correlations for ${selectedCountry}` : "Global Correlations")
-            .style("font-size", height*0.05);
-        }    
+            title.text("Global Correlations").style("font-size", height*0.05);
+        }
     }
 
     // Initial update with all data
@@ -298,10 +304,25 @@ function createRooftopMatrix(data, containerId) {
         updateMatrix();
     }
 
+    // Function to handle region selection from parallel coordinates
+    function handleRegionSelection(selection) {
+        if (selection && selection.region) {
+            selectedRegions = [selection.region];
+            selectedCountry = null; // Clear country selection when region is selected
+        } else if (selection && Array.isArray(selection)) {
+            selectedRegions = selection;
+            selectedCountry = null; // Clear country selection when regions are selected
+        } else {
+            selectedRegions = null;
+        }
+        updateMatrix();
+    }
+
     // Function to handle country selection
     function handleCountrySelection(selection) {
         if (selection && selection.country) {
             selectedCountry = selection.country;
+            selectedRegions = null; // Clear region selection when country is selected
         } else {
             selectedCountry = null;
         }
@@ -315,7 +336,13 @@ function createRooftopMatrix(data, containerId) {
     LinkedCharts.subscribe('dataUpdate', handleDataUpdate);
 
     // Subscribe to parallel coordinates filter
-    LinkedCharts.subscribe('parallelCoordinatesFilter', handleDataUpdate);
+    LinkedCharts.subscribe('parallelCoordinatesFilter', (filteredData) => {
+        currentFilteredData = filteredData;
+        updateMatrix();
+    });
+
+    // Subscribe to region selection from parallel coordinates
+    LinkedCharts.subscribe('regionSelection', handleRegionSelection);
 
     // Subscribe to country selection
     LinkedCharts.subscribe('countrySelection', handleCountrySelection);
@@ -435,4 +462,3 @@ function addColorScaleLegend(svg, colorScale, width, height, cellSize) {
         .style("alignment-baseline", "middle")
         .text("Strong Correlation"); // Replace with the actual description
 }
-

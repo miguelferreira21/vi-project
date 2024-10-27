@@ -91,15 +91,6 @@ function createFilters(data, containerId) {
         .style('height', '90%')
         .style('flex', '0 0 auto');
 
-    // Add the title for the average happiness bars
-    checkboxContainer.append('h3')
-        .text('Region Average Happiness')
-        .style('text-align', 'left') // change to left-aligned to make it easier to position
-        .style('font-size', '12px')
-        .style('font-family', 'Arial')
-        .style('margin', '5px 0')
-        .style('margin-left', '50%'); 
-
     // Scale for average happiness bars
     const xScale = d3.scaleLinear()
         .domain([0, d3.max(avgHappinessScores, d => d.averageHappiness)])
@@ -109,7 +100,7 @@ function createFilters(data, containerId) {
     const selectAllRow = checkboxContainer.append('div')
         .style('display', 'flex')
         .style('align-items', 'center')
-        .style('height', '6%');
+        .style('position', 'relative');
 
     // Add the "Select All" checkbox
     selectAllCheckbox = selectAllRow.append('input')
@@ -138,6 +129,14 @@ function createFilters(data, containerId) {
         .style('text-align', 'left')
         .style('white-space', 'normal')
         .text('Select All');
+
+        selectAllRow.append('span')
+        .style('font-family', 'Arial')
+        .style('font-weight', 'bold')
+        .style('font-size', '10px')  // Adjust font size as needed
+        .style('position', 'absolute')
+        .style('left', '25%')       // Increase this value to move the text further to the right
+        .text('Average happiness');
 
     const scaleSvg = selectAllRow.append('svg')
         .attr('width', '35%')
@@ -282,13 +281,16 @@ function createFilters(data, containerId) {
             allAtMax = allAtMax && filter.rightValue === filter.finish && filter.leftValue == filter.start;
         });
 
-        // If filters aren't used and all countries are selected
-        // Keep the original data
+        // Publish the filtered data
         if (allAtMax && selectedRegions.length === regions.length) {
             LinkedCharts.publish('dataUpdate', data);
         } else {
             LinkedCharts.publish('dataUpdate', filteredData);
         }
+
+        // **Reset regionSelection and countrySelection to null after filtering**
+        LinkedCharts.publish('regionSelection', null);
+        LinkedCharts.publish('countrySelection', null);
     }
 
     const totalSliderItems = filtersData.length;
@@ -421,7 +423,6 @@ function createFilters(data, containerId) {
     });
 
     // Add Reset Filters Button 
-    // @TODO review the sizes of this
     slidersContainer.append('button')
         .text('Reset Filters')
         .style('align-self', 'center')
