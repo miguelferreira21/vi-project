@@ -144,3 +144,63 @@ body {
   stroke: white; /* Adds a white outline to text for better contrast */
   stroke-width: 0.5px;
 }
+
+/* Reset Filters Button Styles */
+.reset-button {
+  padding: 10px 20px;
+  background: linear-gradient(45deg, steelblue, steelblue);
+  border: none;
+  border-radius: 25px;
+  color: #ffffff;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  box-shadow: 
+    0 4px 8px rgba(0, 0, 0, 0.2), /* Main shadow */
+    0 6px 12px rgba(0, 0, 0, 0.15); /* Secondary shadow for depth */
+  transition: all 0.3s ease;
+  outline: none;
+}
+
+/* Hover Effect */
+.reset-button:hover {
+  background: linear-gradient(45deg, rgb(46, 87, 120), rgb(46, 87, 120));
+  box-shadow: 
+    0 6px 12px rgba(0, 0, 0, 0.25), /* Darker shadow on hover */
+    0 8px 16px rgba(0, 0, 0, 0.2); /* Enhanced secondary shadow */
+  transform: translateY(-2px); /* Lift effect on hover */
+}
+
+/* Active (Pressed) Effect */
+.reset-button:active {
+  transform: translateY(1px); /* Slightly lower when pressed */
+  box-shadow: 
+    0 2px 4px rgba(0, 0, 0, 0.15), /* Reduced shadow when pressed */
+    0 4px 8px rgba(0, 0, 0, 0.1); /* Reduced secondary shadow */
+}
+
+/* Remove focus outline for mouse users */
+.reset-button:focus:not(:focus-visible) {
+  outline: none;
+  box-shadow: 
+    0 4px 8px rgba(0, 0, 0, 0.2),
+    0 6px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Maintain focus styles for keyboard navigation */
+.reset-button:focus-visible {
+  outline: none;
+  box-shadow: 
+    0 0 0 3px rgba(107, 140, 230, 0.5),
+    0 4px 8px rgba(0, 0, 0, 0.2),
+    0 6px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Responsive Sizing */
+@media (max-width: 600px) {
+  .reset-button {
+    width: 100%;
+    padding: 12px 0;
+    font-size: 18px;
+  }
+}

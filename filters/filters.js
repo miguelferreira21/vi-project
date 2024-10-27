@@ -424,14 +424,10 @@ function createFilters(data, containerId) {
         sliders.push({ leftSlider, rightSlider, filter });
     });
 
-    // Add Reset Filters Button 
-    slidersContainer.append('button')
+    // Add Reset Filters Button
+    const resetButton = slidersContainer.append('button')
+        .attr('class', 'reset-button')
         .text('Reset Filters')
-        .style('align-self', 'center')
-        .style('padding', '8px 12px')
-        .style('font-size', '14px')
-        .style('margin-top', '10px')
-        .style('cursor', 'pointer')
         .on('click', resetFilters);
 
     // Initial data filter
@@ -484,4 +480,6 @@ function resetFilters() {
 
     data = originalData;
     LinkedCharts.publish('dataUpdate', data);
+    LinkedCharts.publish('regionSelection', null);
+    LinkedCharts.publish('countrySelection', null);
 }
