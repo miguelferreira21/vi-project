@@ -5,6 +5,7 @@ let selectedCountry = null;
 let width, height, zoom, initialTransform, projection, path;
 let selectedRegion = null;
 let isHandlingCountrySelection = false;
+let regionColor = null;
 
 
 function createChoroplethMap(data, containerId) {
@@ -162,7 +163,7 @@ function updateChoroplethMap(data) {
               return "#8B0000";
           }
           if (selectedRegion && countriesInRegion.includes(d.properties.name)) {
-              return "#8B0000";
+              return regionColor;
           }
           return "#fff";
       })
@@ -177,6 +178,10 @@ function updateChoroplethMap(data) {
           }
           return 0.25;
       })
+      .filter(d => !selectedRegion || !countriesInRegion.includes(d.properties.name))
+      .lower();
+
+  mapGroup.selectAll("path")
       .on("mouseover", function(event, d) {
           if (!d || !d.properties) return;
           const countryData = processedData.find(item => item.country === d.properties.name);
@@ -199,7 +204,7 @@ function updateChoroplethMap(data) {
                       return "#8B0000";
                   }
                   if (selectedRegion && countriesInRegion.includes(d.properties.name)) {
-                      return "#8B0000";
+                      return regionColor;
                   }
                   return "#fff";
               })
@@ -212,7 +217,7 @@ function updateChoroplethMap(data) {
                   }
                   return 0.25;
               })
-              .filter(d => !selectedCountry || d.properties.name !== selectedCountry)
+              .filter(d => (!selectedCountry || d.properties.name !== selectedCountry) && (!selectedRegion || !countriesInRegion.includes(d.properties.name)))
               .lower();
               
           hideTooltip();
@@ -302,10 +307,12 @@ function handleCountrySelection(countryName, data) {
           LinkedCharts.publish('countrySelection', null);
       }
       
-      if (selection && selection.region) {
+      if (selection && selection.region && selection.color) {
           selectedRegion = selection.region;
+          regionColor = selection.color;
       } else {
           selectedRegion = null;
+          regionColor = null;
       }
       
       updateChoroplethMap(currentData);

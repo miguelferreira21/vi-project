@@ -144,17 +144,3 @@ body {
   stroke: white; /* Adds a white outline to text for better contrast */
   stroke-width: 0.5px;
 }
-
-/* Enhance visual feedback for selected lines */
-.lines path.selected {
-  stroke: orange; /* Choose a distinct color for selected lines */
-  stroke-width: 3px; /* Slightly thicker for emphasis */
-  opacity: 1; /* Fully opaque */
-}
-
-/* Ensure hover styling precedes selected styling */
-.lines path:hover {
-  stroke: red;
-  stroke-width: 3px;
-  opacity: 1;
-}

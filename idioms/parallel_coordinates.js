@@ -3,7 +3,6 @@ function createParallelCoordinates(initialData, containerId) {
     let cachedLinePaths = new Map();
     
     const keys = Object.keys(data[0]).filter(d => d !== 'country' && d !== 'region' && d !== 'year' && d !== 'population');
-    const colorKey = 'population';
     let selectedRegion = null;
     let hoveredRegion = null;
     let averagedData = null;
@@ -24,14 +23,13 @@ function createParallelCoordinates(initialData, containerId) {
     const getDisplayName = (key) => columnNameMap[key] || key;
     let displayKeysOrder = keys.filter(key => key !== 'population');
 
-    const margin = { top: 20, right: 150, bottom: 30, left: 12 };
     const container = d3.select(containerId);
     const containerWidth = container.node().clientWidth;
     const containerHeight = container.node().clientHeight;
-    const width = containerWidth - margin.left - margin.right;
-    const height = containerHeight - margin.top - margin.bottom;
+    const width = containerWidth*0.90;
+    const height = containerHeight*0.85;
 
-    let parallelCoordX = d3.scalePoint().range([0, width]).padding(0.75);
+    let parallelCoordX = d3.scalePoint().range([0, width]);
     const y = {};
     let activeBrushes = new Map();
     let brushExtents = new Map();
@@ -73,23 +71,26 @@ function createParallelCoordinates(initialData, containerId) {
         displayKeysOrder = userCustomOrder || [...initialDisplayKeysOrder];
 
         parallelCoordX.domain(displayKeysOrder);
-        
-        initializeScales(initialData);
-
+    
+        initializeScales(averagedData);
+    
         const svg = container.append("svg")
             .attr("width", containerWidth)
             .attr("height", containerHeight)
-            .style("position", "relative")
-            .append("g")
-            .attr("transform", `translate(${margin.left},${margin.top})`);
+            .style("position", "relative");
+    
+        const horizontalOffset = (containerWidth - width) / 2; // Calculate horizontal centering offset
+        const verticalOffset = (containerHeight - height) / 3;
 
-        const linesGroup = svg.append("g").attr("class", "lines");
-        setupAxes(svg);
-        setupBrushes(svg);
-        setupLegend(svg);
-        
+        const svgGroup = svg.append("g")
+            .attr("transform", `translate(${horizontalOffset},${verticalOffset})`);
+    
+        const linesGroup = svgGroup.append("g").attr("class", "lines");
+        setupAxes(svgGroup);
+        setupBrushes(svgGroup);
+    
         drawLines(averagedData, linesGroup);
-
+    
         return { svg, linesGroup };
     }
 
@@ -105,7 +106,7 @@ function createParallelCoordinates(initialData, containerId) {
 
         const legend = svg.append("g")
             .attr("class", "parallel-coordinates-legend")
-            .attr("transform", `translate(${width + margin.right - legendWidth * 4.5}, ${height * 0.25})`);
+            .attr("transform", `translate(${width - legendWidth * 4.5}, ${height * 0.25})`);
 
         const legendScale = d3.scaleLinear()
             .domain(extent)
@@ -213,9 +214,9 @@ function createParallelCoordinates(initialData, containerId) {
 
     function drawLines(filteredData, linesGroup) {
         const dataToRender = filteredData;
-
-        const totalPopulation = memoizedTotalPopulation(initialData);
-        const color = getColorScale(totalPopulation);
+    
+        // Get the color scale based on region
+        const colorScale = getRegionColorScale(initialData);
         
         const lines = linesGroup.selectAll("path")
             .data(dataToRender, d => d.region);
@@ -236,15 +237,10 @@ function createParallelCoordinates(initialData, containerId) {
             .transition()
             .duration(130)
             .attr("d", d => linePath(d))
-            .attr("stroke", d => {
-                if (selectedRegion && d.region === selectedRegion) {
-                    return "#FF0000";
-                }
-                return color(totalPopulation.get(d.region));
-            })
-            .attr("stroke-width", d => selectedRegion && d.region === selectedRegion ? 2 : 1.5)
-            .attr("opacity", d => selectedRegion ? (d.region === selectedRegion ? 1 : 0.4) : 1);
-
+            .attr("stroke", d => colorScale.get(d.region)) // Use region-specific color
+            .attr("stroke-width", d => selectedRegion && d.region === selectedRegion ? 4 : 1.5)
+            .attr("opacity", d => selectedRegion ? (d.region === selectedRegion ? 1 : 0.5) : 1);
+    
         setupLineInteractions(linesEnter.merge(lines), filteredData);
     }
 
@@ -333,7 +329,7 @@ function createParallelCoordinates(initialData, containerId) {
         axes.append("text")
             .attr("class", "axis-title")
             .style("text-anchor", "middle")
-            .style("font-size", width * 0.00995)
+            .style("font-size", width * 0.012)
             .attr("y", height + 20)
             .text(d => getDisplayName(d))
             .style("fill", "black")
@@ -425,17 +421,15 @@ function createParallelCoordinates(initialData, containerId) {
 
     function setupLineInteractions(lines, filteredData) {
         const tooltip = setupTooltip();
-
+    
         lines
             .on("mouseover", (event, d) => {
                 hoveredRegion = d.region;
                 d3.select(event.target)
-                    .attr("stroke-width", 3)
-                    .attr("stroke", "#FF4500")
-                    .attr("opacity", 1);  // Ensure full opacity on hover
-
-                // Publish hover event for choropleth map
-                LinkedCharts.publish('regionHover', d.region);
+                    .attr("stroke-width", 4)
+                    .attr("opacity", 1); // Full opacity on hover
+    
+                // Show the tooltip with region-specific data
                 showTooltip(event, d, tooltip);
             })
             .on("mousemove", (event) => {
@@ -444,9 +438,7 @@ function createParallelCoordinates(initialData, containerId) {
             .on("mouseout", (event, d) => {
                 hoveredRegion = null;
                 resetLineStyle(event.target, d);
-                // Clear hover state
-                LinkedCharts.publish('regionHover', null);
-                hideTooltip(tooltip);
+                hideTooltip(tooltip); // Hide the tooltip when mouse leaves
             })
             .on("click", (event, d) => {
                 if (currentTooltip) {
@@ -455,7 +447,7 @@ function createParallelCoordinates(initialData, containerId) {
                 }
                 handleLineClick(d, filteredData);
             });
-    }
+    } 
 
     function setupTooltip() {
         if (currentTooltip) {
@@ -503,37 +495,23 @@ function createParallelCoordinates(initialData, containerId) {
             LinkedCharts.publish('regionSelection', null);
         } else {
             selectedRegion = d.region;
-            LinkedCharts.publish('regionSelection', { region: d.region, year: d.year });
+            LinkedCharts.publish('regionSelection', { region: d.region, year: d.year, color: getRegionColorScale(initialData).get(d.region) });
         }
         drawLines(filteredData, d3.select('.lines'));
     }
 
     function resetLineStyle(element, d) {
-        const totalPopulation = memoizedTotalPopulation(initialData);
+        const colorScale = getRegionColorScale(initialData);  // Get color scale for regions
+    
         d3.select(element)
-            .attr("stroke-width", selectedRegion && d.region === selectedRegion ? 2 : 1.5)
-            .attr("stroke", () => {
-                if (selectedRegion && d.region === selectedRegion) {
-                    return "#FF0000";
-                }
-                return getColorScale(totalPopulation)(totalPopulation.get(d.region));
-            })
+            .attr("stroke-width", selectedRegion && d.region === selectedRegion ? 4 : 1.5)
+            .attr("stroke", () => colorScale.get(d.region))  // Use region-specific color
             .attr("opacity", () => {
                 if (selectedRegion) {
                     return d.region === selectedRegion ? 1 : 0.5;
                 }
-                return 1; 
+                return 1;
             });
-    }
-
-    function getColorScale(totalPopulation) {
-        const extent = [
-            d3.min([...totalPopulation.values()]),
-            d3.max([...totalPopulation.values()])
-        ];
-        return d3.scaleSequential()
-            .domain(extent)
-            .interpolator(d3.interpolateRgb("#F0E68C", "#FF4500"));
     }
 
     function calculateTotalPopulationByRegion(data) {
@@ -542,6 +520,31 @@ function createParallelCoordinates(initialData, containerId) {
             d => d.region
         );
     }
+
+    function getRegionColorScale(data) {
+        // Define a list of non-standard colors
+        const colorPalette = [
+            "#6A0DAD", // Purple//
+            "#FFA500", // Orange//
+            "#2A9D8F", // Teal//
+            "#D6277B", // Magenta//
+            "#FFC300", // Mustard yellow//
+            "#89992C", // Goldenrod
+            "#FF1493", // Deep Pink
+            "#996DB3", // Blue Violet
+            "#A52A2A"  // Brown
+        ];
+    
+        // Map each unique region to a color
+        const regions = Array.from(new Set(data.map(d => d.region)));
+        const colorScale = new Map();
+        regions.forEach((region, i) => {
+            colorScale.set(region, colorPalette[i % colorPalette.length]);
+        });
+        
+        return colorScale;
+    }
+    
 
     function handleYearRangeUpdate(yearRange) {
         const { startYear, endYear, selectedYear } = yearRange;
