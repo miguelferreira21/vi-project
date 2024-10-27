@@ -17,7 +17,8 @@ function createFilters(data, containerId) {
 
     // Calculate width and height based on container dimensions
     const width = containerWidth * 0.20;
-    const height = containerHeight; // Full height minus margins
+    // Full height minus margins
+    const height = containerHeight;
     const lineThickness = 2;
 
     // Convert values to numbers
@@ -132,24 +133,24 @@ function createFilters(data, containerId) {
         .style('white-space', 'normal')
         .text('Select All');
 
-        selectAllRow.append('span')
+    selectAllRow.append('span')
         .style('font-family', 'Arial')
         .style('font-weight', 'bold')
-        .style('font-size', '10px')  // Adjust font size as needed
+        .style('font-size', height * 0.05 + 'px')
         .style('position', 'absolute')
-        .style('left', '25%')       // Increase this value to move the text further to the right
+        .style('left', '25%')
         .text('Average happiness');
 
     const scaleSvg = selectAllRow.append('svg')
         .attr('width', '35%')
-        .attr('height', '10px')
-        .style('margin-left', '5%')
-        .attr('transform', `translate(0, 0)`);
+        .attr('height', height * 0.06 + 'px')
+        .style('margin-bottom', '1%')
+        .style('margin-left', '5%');
 
     // Define scale for the ticks, using the width of the scale SVG
     const maxHappiness = d3.max(avgHappinessScores, d => d.averageHappiness);
     const scale = d3.scaleLinear()
-        .domain([0, maxHappiness]) // Domain based on actual happiness values
+        .domain([0, maxHappiness]) // Domain based on max avg happiness for regions found
         .range([0, 100]);
 
     // Draw the scale line
@@ -157,13 +158,11 @@ function createFilters(data, containerId) {
         .attr('x1', '0')
         .attr('x2', '100%')
         .attr('y1', '10') // Positioning the line vertically
-        .attr('y2', '10') // Keep the same y-coordinate
-        .attr('stroke', '#333') // Line color
-        .attr('stroke-width', 2); // Line thickness
+        .attr('y2', '10')
+        .attr('stroke', '#000');
 
     // Add Ticks to the Scale
     const tickValues = d3.range(0, maxHappiness + 1, Math.ceil(maxHappiness / 5));
-
     scaleSvg.selectAll('.tick')
         .data(tickValues)
         .enter()
@@ -173,7 +172,7 @@ function createFilters(data, containerId) {
         .attr('x2', d => `${scale(d)}%`)
         .attr('y1', '0')
         .attr('y2', '15') // Length of the ticks
-        .attr('stroke', '#333'); // Tick color
+        .attr('stroke', '#000'); // Tick color
 
     // Add tick labels
     scaleSvg.selectAll('.tick-label')
@@ -181,10 +180,10 @@ function createFilters(data, containerId) {
         .enter()
         .append('text')
         .attr('class', 'tick-label')
-        .attr('x', d => `${scale(d) - 2}%`) // Move text slightly to the left (adjust the value as needed)
-        .attr('y', '7') // Position above the ticks
+        .attr('x', d => `${scale(d) - 3}%`) // Move a bit to the left
+        .attr('y', '7')
         .attr('text-anchor', 'middle')
-        .attr('font-size', '8px') // Change font size to make it smaller
+        .attr('font-size', height * 0.04 + 'px') // Change font size to make it smaller
         .style('font-family', 'Arial')
         .text(d => d.toFixed(0));
 
@@ -238,7 +237,7 @@ function createFilters(data, containerId) {
         checkboxRow.append('div')
             .datum(avgHappiness.toFixed(2))
             .style('width', `${xScale(avgHappiness)*0.35}%`)
-            .style('height', '10px')  // Adjust the height of the bar as needed
+            .style('height', height*0.04 + 'px')
             .style('background-color', 'steelblue')
             .style('margin-left', '5%')
             .on('mouseover', handleMouseOverBar)
