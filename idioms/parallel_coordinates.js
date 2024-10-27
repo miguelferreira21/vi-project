@@ -266,9 +266,9 @@ function createParallelCoordinates(initialData, containerId) {
         // Get the unique regions from the filtered data
         const visibleRegions = [...new Set(filteredDataForDraw.map(d => d.region))];
         
-        // Publish filtered data to other charts, but only for visible regions
+        // Publish filtered data to other charts, including all countries from visible regions
         if (filteredData.length > 0) {
-            const visibleFilteredData = filteredData.filter(d => visibleRegions.includes(d.region));
+            const visibleFilteredData = data.filter(d => visibleRegions.includes(d.region));
             LinkedCharts.publish('parallelCoordinatesFilter', visibleFilteredData);
         } else {
             LinkedCharts.publish('parallelCoordinatesFilter', data);
@@ -628,3 +628,4 @@ function createParallelCoordinates(initialData, containerId) {
 
     const { svg, linesGroup } = setup();
 }
+
