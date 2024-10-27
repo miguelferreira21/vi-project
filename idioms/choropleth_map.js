@@ -266,37 +266,43 @@ function handleCountrySelection(countryName, data) {
 
     function handleRegionHover(region) {
       function getCountriesInRegion(region, data) {
-        return data.filter(d => d.region === region).map(d => d.country);
+        return [...new Set(data.filter(d => d.region === region).map(d => d.country))];
       }
   
       const hoveredCountriesInRegion = region ? getCountriesInRegion(region, currentData) : [];
       const selectedCountriesInRegion = selectedRegion ? getCountriesInRegion(selectedRegion, currentData) : [];
   
+      
       mapGroup.selectAll("path")
         .attr("stroke", d => {
-          if (d.properties) {
-            if (d.properties.name === selectedCountry) {
-              return "#8B0000"; // Selected country
-            } else if (selectedCountriesInRegion.includes(d.properties.name)) {
-              return "#8B0000"; // Selected region
-            } else if (hoveredCountriesInRegion.includes(d.properties.name)) {
-              return "#000"; // Hovered region
-            }
+          if (!d || !d.properties) return "#fff";
+          
+          if (d.properties.name === selectedCountry) {
+            return "#8B0000"; // Selected country
+          } else if (selectedCountriesInRegion.includes(d.properties.name)) {
+            return regionColor || "#8B0000"; // Selected region
+          } else if (hoveredCountriesInRegion.includes(d.properties.name)) {
+            return "#000"; // Hovered region
           }
           return "#fff"; // Default
         })
         .attr("stroke-width", d => {
-          if (d.properties) {
-            if (d.properties.name === selectedCountry) {
-              return 0.75; // Selected country
-            } else if (selectedCountriesInRegion.includes(d.properties.name)) {
-              return 0.5; // Selected region
-            } else if (hoveredCountriesInRegion.includes(d.properties.name)) {
-              return 0.5; // Hovered region
-            }
+          if (!d || !d.properties) return 0.25;
+          
+          if (d.properties.name === selectedCountry) {
+            return 0.75; // Selected country
+          } else if (selectedCountriesInRegion.includes(d.properties.name)) {
+            return 0.5; // Selected region
+          } else if (hoveredCountriesInRegion.includes(d.properties.name)) {
+            return 0.5; // Hovered region
           }
           return 0.25; // Default
         });
+  
+      // Raise hovered countries
+      mapGroup.selectAll("path")
+        .filter(d => d && d.properties && hoveredCountriesInRegion.includes(d.properties.name))
+        .raise();
     }
 
     function handleRegionSelection(selection) {
@@ -486,6 +492,7 @@ function handleCountrySelection(countryName, data) {
           initialTransform
         );
     }
+
 
 
 

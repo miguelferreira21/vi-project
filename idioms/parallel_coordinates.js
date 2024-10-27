@@ -428,6 +428,8 @@ function createParallelCoordinates(initialData, containerId) {
                 d3.select(event.target)
                     .attr("stroke-width", 4)
                     .attr("opacity", 1); // Full opacity on hover
+
+                LinkedCharts.publish('regionHover', d.region);
     
                 // Show the tooltip with region-specific data
                 showTooltip(event, d, tooltip);
@@ -438,6 +440,7 @@ function createParallelCoordinates(initialData, containerId) {
             .on("mouseout", (event, d) => {
                 hoveredRegion = null;
                 resetLineStyle(event.target, d);
+                LinkedCharts.publish('regionHover', null);
                 hideTooltip(tooltip); // Hide the tooltip when mouse leaves
             })
             .on("click", (event, d) => {
