@@ -1,9 +1,11 @@
 let regions = []; // Stores all the regions
 let selectedRegions = []; // Track selected regions
+const sliders = []; // Store all sliders
 
 let checkboxContainer = null;
 let selectAllCheckbox = null;
 let originalData = null;
+let slidersContainer = null;
 
 function createFilters(data, containerId) {
     // Save originalData
@@ -62,7 +64,7 @@ function createFilters(data, containerId) {
         .style('overflow', 'hidden'); // Prevent overflow
 
     // Create a container for the sliders
-    const slidersContainer = container.append('div')
+    slidersContainer = container.append('div')
         .style('display', 'flex')
         .style('flex-direction', 'column')
         .style('gap', "2%")
@@ -395,8 +397,6 @@ function createFilters(data, containerId) {
                 filterData();
             });
 
-
-
         // Create the right slider
         const rightSlider = g.append('circle')
             .attr('cx', slidersContainer.node().clientWidth * 0.85)
@@ -420,6 +420,8 @@ function createFilters(data, containerId) {
             .call(drag)
             .on('mouseover', (event) => handleMouseOverFilter(event, filter.leftValue))
             .on('mouseout', handleMouseOutFilter);
+
+        sliders.push({ leftSlider, rightSlider, filter });
     });
 
     // Add Reset Filters Button 
@@ -472,6 +474,13 @@ function resetFilters() {
     checkboxContainer.selectAll('input.region-checkbox')
         .property('checked', true);
     selectAllCheckbox.property('checked', true);
+
+    sliders.forEach(({ leftSlider, rightSlider, filter }) => {
+        leftSlider.attr('cx', slidersContainer.node().clientWidth * 0.15);
+        rightSlider.attr('cx', slidersContainer.node().clientWidth * 0.85);
+        filter.leftValue = filter.start;
+        filter.rightValue = filter.finish;
+    });
 
     data = originalData;
     LinkedCharts.publish('dataUpdate', data);
